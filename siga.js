@@ -1,4 +1,4 @@
-const SIGA = {
+export var SIGA = {
   username: "",
   currentIgreja: null,
   cookie: "",
@@ -326,5 +326,3 @@ const SIGA = {
     return [];
   },
 };
-
-export default SIGA;
