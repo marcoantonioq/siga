@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGA</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      button:active {
+        background-color: #004494;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <h1>Lista de Igrejas</h1>
+
+      <div class="form-group">
+        <label for="cookie">Cookie de Navegação:</label>
+        <input
+          type="text"
+          id="cookie"
+          v-model="APP.cookie"
+          placeholder="Digite o cookie de navegação"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="startDate">Data de Início:</label>
+        <input type="date" id="startDate" v-model="APP.startDate" />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">Data de Término:</label>
+        <input type="date" id="endDate" v-model="APP.endDate" />
+      </div>
+
+      <button @click="APP.loadAll">Carregar</button>
+
+      <div v-if="APP.loading">Loading...</div>
+      <div v-if="APP.error" style="color: red">{{ APP.error }}</div>
+
+      <table v-if="APP.igrejas.length">
+        <thead>
+          <tr>
+            <th>Cod</th>
+            <th>Adm</th>
+            <th>Cod Unidade</th>
+            <th>Reg</th>
+            <th>Type</th>
+            <th>Nome</th>
+            <th>Descrição</th>
+            <th>Membros</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="igreja in SIGA.igrejas" :key="igreja.cod">
+            <td>{{ igreja.cod }}</td>
+            <td>{{ igreja.adm }}</td>
+            <td>{{ igreja.codUnidade }}</td>
+            <td>{{ igreja.reg }}</td>
+            <td>{{ igreja.type }}</td>
+            <td>{{ igreja.nome }}</td>
+            <td>{{ igreja.desc }}</td>
+            <td>{{ igreja.membros }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      const { createApp, reactive, onMounted, watch } = Vue;
+
+      createApp({
+        setup() {
+          const APP = reactive({
+            cookie: localStorage.getItem("cookie") || "",
+            now: new Date(),
+            startDate:
+              localStorage.getItem("startDate") ||
+              new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1)
+                .toISOString()
+                .split("T")[0],
+            endDate:
+              localStorage.getItem("endDate") ||
+              new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+                .toISOString()
+                .split("T")[0],
+            loading: false,
+            error: null,
+            currentIgreja: null,
+            igrejas: [],
+            fluxos: [],
+            loadAll() {
+              app.loading = true;
+              app.error = null;
+              try {
+                SIGA.login(APP.cookie);
+                const result = SIGA.loadAll();
+                console.log("Result dados SIGA:: ", result);
+              } catch (err) {
+                console.log("Erro ", err);
+                app.error = err.message;
+              } finally {
+                app.loading = false;
+              }
+            },
+          });
+
+          watch(
+            () => SIGA.cookie,
+            (newValue) => {
+              SIGA.login(APP.cookie);
+              localStorage.setItem("cookie", newValue);
+            }
+          );
+          watch(
+            () => APP.startDate,
+            (newValue) => localStorage.setItem("startDate", newValue)
+          );
+          watch(
+            () => APP.endDate,
+            (newValue) => localStorage.setItem("endDate", newValue)
+          );
+
+          onMounted(() => {
+            console.log("Mounted");
+          });
+
+          return {
+            APP,
+            SIGA,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
