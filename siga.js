@@ -1,3 +1,6 @@
+function ola() {
+  console.log("Teste função olá")
+}
 
 (function (global) {
   // Define o objeto SIGA
