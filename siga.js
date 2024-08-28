@@ -231,12 +231,12 @@ const SIGA = {
         __initPage__: "S",
       };
 
-      const params = Object.keys(requestData)
+      const paramsURL = Object.keys(requestData)
         .map((key) => `${key}=${encodeURIComponent(requestData[key])}`)
         .join("&");
 
       const { blobBytes, type } = await this.fetch({
-        url: `https://siga.congregacao.org.br/TES/TES00902.aspx?${params}`,
+        url: 'https://siga.congregacao.org.br/TES/TES00902.aspx?' + paramsURL,
         headers: {
           "Content-Type": "application/octet-stream",
         },
