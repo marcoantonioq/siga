@@ -179,11 +179,15 @@
       },
     }).mount("#app");
 
-    if (typeof SIGA === "undefined") {
-      console.error("SIGA não está definido.");
-    } else {
-      console.log("SIGA: ", siga)
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const siga = window.SIGA
+      console.log("SIGA::: ", siga)
+      if (typeof SIGA === "undefined") {
+        console.error("SIGA não está definido.");
+      } else {
+        console.log("SIGA: ", siga)
+      }
+    });
   </script>
 </body>
 

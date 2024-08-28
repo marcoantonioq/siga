@@ -15,4 +15,4 @@
   };
   // Exponha o SIGA globalmente
   global.SIGA = SIGA;
-})(window);
+})(document);
