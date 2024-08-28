@@ -7,6 +7,7 @@
   <title>SIGA</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://raw.githubusercontent.com/marcoantonioq/siga/main/siga.js" defer> </script>
 
   <style>
     table {
@@ -178,21 +179,11 @@
       },
     }).mount("#app");
 
-  </script>
-  <script type="module" defer>
-    import { SIGA } from 'https://raw.githubusercontent.com/marcoantonioq/siga/main/siga.js';
-
-    console.log("SIGA definido:", typeof SIGA !== "undefined");
-
     if (typeof SIGA === "undefined") {
       console.error("SIGA não está definido.");
-      return;
     } else {
-      console.log("SIGA: ", SIGA)
-
+      console.log("SIGA: ", siga)
     }
-
-
   </script>
 </body>
 
