@@ -124,7 +124,7 @@ const SIGA = {
     try {
       const empresas = [];
       const igrejas = [];
-      const body = await loggedIn();
+      const body = await this.login();
       const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
       let optgroupMatch;
 
@@ -244,27 +244,10 @@ const SIGA = {
 
       if (!["application/vnd.ms-excel"].includes(type)) return [];
 
-      //  {
-      //   FLUXO: "Saída",
-      //   REGIONAL: igreja.reg,
-      //   IGREJA: e.Localidade.replace(/BR \d+-\d+ - /gi, "").trim(),
-      //   IGREJA_ADM: igreja.adm,
-      //   IGREJA_COD: igreja.cod,
-      //   IGREJA_TIPO: igreja.type,
-      //   IGREJA_DESC: e.Localidade,
-      //   CATEGORIA: e.Despesa,
-      //   DATA: e.Data,
-      //   VALOR:
-      //     Number(e.Total.replace(".", "").replace(",", ".")) || 0,
-      //   OBSERVAÇÕES: `${e.Fornecedor}, NF: ${e.NumeroDoc}`,
-      //   REF: e.Ref,
-      //   ORIGEM: "SIGA",
-      //   CREATED: new Date(),
-      //   UPDATED: new Date(),
-      // };
+      console.info(">>> Gerar dados do arquivo XLS.....", blobBytes);
     } catch (error) {
       console.warn(
-        `!!!! Erro ao coletar despesa: ${JSON.stringify(igreja, null, 2)}: `,
+        `!!!! Erro ao coletar despesa: ${JSON.stringify(this.currentIgreja, null, 2)}: `,
         error
       );
       return [];
@@ -279,7 +262,7 @@ const SIGA = {
       const requestData = {
         f_data1: startDate.replace("-").reverse().join("/"),
         f_data2: endDate.replace("-").reverse().join("/"),
-        f_estabelecimento: igreja.cod,
+        f_estabelecimento: this.currentIgreja.cod,
         f_centrocusto: "",
         f_fornecedor: "",
         f_formato: "TES00902.aspx",
@@ -293,307 +276,55 @@ const SIGA = {
         .join("&");
 
       const { blobBytes } = await this.fetch({
-        url: `https://siga.congregacao.org.br/TES/TES00501.aspx?${params}`,
+        url: `https://siga.congregacao.org.br/TES/TES00902.aspx?${params}`,
         headers: {
           "Content-Type": "application/octet-stream",
         },
       });
 
-      if (!["application/vnd.ms-excel"].includes(blobBytes.getContentType()))
-        return [];
+      if (!["application/vnd.ms-excel"].includes(type)) return [];
 
-      console.log(">>> Lidar com relatório XLS", blobBytes);
-      // {
-      //   FLUXO: "Saída",
-      //   REGIONAL: igreja.reg,
-      //   IGREJA: e.Localidade.replace(/BR \d+-\d+ - /gi, "").trim(),
-      //   IGREJA_ADM: igreja.adm,
-      //   IGREJA_COD: igreja.cod,
-      //   IGREJA_TIPO: igreja.type,
-      //   IGREJA_DESC: e.Localidade,
-      //   CATEGORIA: e.Despesa,
-      //   DATA: e.Data,
-      //   VALOR: Number(e.Total.replace(".", "").replace(",", ".")) || 0,
-      //   OBSERVAÇÕES: `${e.Fornecedor}, NF: ${e.NumeroDoc}`,
-      //   REF: e.Ref,
-      //   ORIGEM: "SIGA",
-      //   CREATED: new Date(),
-      //   UPDATED: new Date(),
-      // }
+      console.info(">>> Gerar dados do arquivo XLS.....", blobBytes);
     } catch (error) {
-      console.warn("!!! Erro ao coletar despesa: ".igreja.desc);
+      console.warn(
+        `!!!! Erro ao coletar fluxo: ${JSON.stringify(this.currentIgreja, null, 2)}: `,
+        error
+      );
+      return [];
     }
     return coletas;
   },
 
-  async obterFluxoColetas(startDate, endDate) {
-    const ofertas = [];
+  async obterCompetencias() {
     try {
-      for (const { start, end } of this.betweenDates(startDate, endDate)) {
-        var { code: codeCof, body: bodyConf } = await this.fetch({
-          method: "post",
-          url: "https://siga.congregacao.org.br/TES/TES00501.aspx",
-          payload: {
-            f_consultar: "S",
-            f_data1: start.replace("-").reverse().join("/"),
-            f_data2: end.replace("-").reverse().join("/"),
-            f_filtro_relatorio: this.igrejas
-              .filter(
-                (e) =>
-                  e.adm === this.currentIgreja.desc ||
-                  e.desc === this.currentIgreja.desc
-              )
-              .map((e) => e.cod)
-              .join(", "),
-            f_formacontribuicao: "0",
-            f_opcao2: "casaoracao",
-            f_exibir: "todos",
-            f_detalhar: "true",
-            f_saidapara: "Excel",
-            __initPage__: "S",
-            __jqSubmit__: "S",
-          },
-          headers: {
-            "Content-Type": `multipart/form-data`,
-          },
-        });
-        if (codeCof === 500) {
-          throw `!!! Falha ao gerar relatório: ${bodyConf}`;
-        }
-
-        const {
-          code: codeDow,
-          body: bodyDow,
-          blobBytes,
-          type: typeContent,
-        } = await this.fetch({
-          method: "post",
-          url: "https://siga.congregacao.org.br/TES/TES00507.aspx",
-          payload: "f_saidapara=Excel&__initPage__=S",
-          headers: {
-            "Content-Type": `multipart/form-data`,
-          },
-        });
-
-        if (codeDow !== 200) {
-          throw `Falha ao gerar relatório de coletas: ${bodyDow}`;
-        }
-
-        if (!["application/vnd.ms-excel"].includes(typeContent)) return [];
-
-        console.info(">>> Gerar dados do arquivo XLS.....", blobBytes);
-      }
-    } catch (error) {
-      console.error("!!! Erro ao baixar fluxo de coletas: ", error);
-    }
-    return ofertas;
-  },
-
-  async obterFluxoDepositos(startDate, endDate) {
-    const fluxos = [];
-
-    /**
-     * Obter copetencias
-     */
-    const refs = this.betweenDates(startDate, endDate).map((e) =>
-      e.start.replace(/\d{2}\/(\d{2}\/\d{4})/gi, "$1")
-    );
-
-    // Executa a requisição
-    var { body } = await this.fetch({
-      url: "https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S",
-    });
-
-    const selectRegex =
-      /<select[^>]*id="f_competencia"[^>]*>([\s\S]*?)<\/select>/i;
-    const selectMatch = selectRegex.exec(body);
-
-    var competencias = [];
-
-    if (selectMatch) {
-      const optionsHtml = selectMatch[1];
-      const optionRegex = /<option[^>]*value="([^"]*)".*?>(.*?)<\/option>/gi;
-      var match;
-      while ((match = optionRegex.exec(optionsHtml)) !== null) {
-        if (!match[2].includes("Todos") && refs.includes(match[2])) {
-          competencias.push({
-            value: match[1],
-            description: match[2],
-          });
-        }
-      }
-    }
-
-    /**
-     * Obter dados
-     */
-    for (const { value: competencia, description } of competencias) {
-      const {
-        code: status,
-        body,
-        blobBytes,
-      } = await this.fetch({
-        url: "https://siga.congregacao.org.br/TES/TES00702.aspx",
+      const result = await this.fetch({
+        url: "https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetencias",
         method: "post",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        payload: `f_competencia=${competencia}&f_data1=&f_data2=&f_estabelecimento=${this.currentIgreja.cod}&f_saidapara=Excel&f_ordenacao=alfabetica&__initPage__=S`,
-      });
-
-      if (status !== 200) {
-        console.error(
-          `Falha (${status}) ao gerar relatório de deposito ${description}: ${body}`
-        );
-      }
-
-      if (!["application/vnd.ms-excel"].includes(blobBytes.getContentType()))
-        return [];
-
-      console.log("Lidar com o blobBytes XLS: ", blobBytes);
-      //   {
-      //     FLUXO: "Deposito",
-      //   REGIONAL: undefined,
-      //   IGREJA: igrejaNome,
-      //   IGREJA_ADM: undefined,
-      //   IGREJA_COD: undefined,
-      //   IGREJA_TIPO: undefined,
-      //   IGREJA_DESC: igrejaNome,
-      //   CATEGORIA: "",
-      //   DATA: values[i][3],
-      //   VALOR: values[i][18].replace("R$ ", "").trim(),
-      //   OBSERVAÇÕES: values[i][7],
-      //   REF: ref,
-      //   ORIGEM: "SIGA",
-      //   CREATED: new Date(),
-      //   UPDATED: new Date(),
-      // }
-    }
-
-    return fluxos;
-  },
-
-  async obterEventosSecretaria(startDate, endDate) {
-    const eventos = [];
-    try {
-      const { code, body } = await this.fetch({
-        url: "https://siga.congregacao.org.br/REL/REL01701.asmx/SelecionarVW",
         headers: {
           "Content-Type": "application/json; charset=UTF-8",
         },
         payload: JSON.stringify({
-          codigoTipoEvento: null,
-          codigoEmpresa: igreja.codUnidade,
-          codigoEstabelecimento: null,
-          data1: startDate.replace("-").reverse().join("/"),
-          data2: endDate.replace("-").reverse().join("/"),
-          listaStatus: "4,3",
-          config: {
-            sEcho: 1,
-            iDisplayStart: 0,
-            iDisplayLength: 1000,
-            sSearch: "",
-            iSortCol: 0,
-            sSortDir: "asc",
-          },
+          codigoEmpresa: this.currentIgreja.codUnidade,
         }),
       });
-      const data = JSON.parse(body);
-      if (data.d.aaData && code == 200) {
-        data.d.aaData
-          .map(([DATA, SEMANA, HORA, GRUPO, IGREJA, , STATUS, ID]) => {
-            return {
-              EVENTO: "Secretaria",
-              GRUPO,
-              DATA: new Date(`${DATA} ${HORA.split("-")[0].trim()}`),
-              IGREJA,
-              OBSERVAÇÕES: `${SEMANA}: ${HORA}`,
-              STATUS: STATUS.replace(/<\/?[^>]+>/gi, ""),
-              ID,
-            };
-          })
-          .forEach((e) => eventos.push(e));
-      }
-    } catch (erro) {
-      console.warn("Erro ao obter Eventos: ", erro);
+
+      const competencias = JSON.parse(result.body).d.map(
+        ({ Codigo, Descricao }) => ({
+          cod: Codigo,
+          desc: Descricao,
+        })
+      );
+
+      this.competencias = competencias;
+      return competencias;
+    } catch (error) {
+      console.error(
+        "!!! Erro ao carregar as competências da igreja selecionada:",
+        error
+      );
     }
-    console.log("Eventos obtidos: ", eventos);
-    return eventos;
-  },
-
-  async obterEventosContabilidadeCompetencias() {
-    if (this.currentIgreja.type !== 3) return;
-
-    const eventos = [];
-    try {
-      const { body } = await this.fetch({
-        url: "https://siga.congregacao.org.br/CTB/CTB00701.aspx?f_inicio=S&__initPage__=S",
-      });
-
-      var regex =
-        /<tr>[\s\S]*?<td[^>]*>([\s\S]*?)<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<span class="icon (icon-folder-[\w-]+)[\s\S]*?<\/span>[\s\S]*?<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<span class="icon (icon-folder-[\w-]+)[\s\S]*?<\/span>[\s\S]*?<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<span class="icon (icon-folder-[\w-]+)[\s\S]*?<\/span>[\s\S]*?<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<span class="icon (icon-folder-[\w-]+)[\s\S]*?<\/span>[\s\S]*?<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<span class="icon (icon-folder-[\w-]+)[\s\S]*?<\/span>[\s\S]*?<\/td>[\s\S]*?<\/tr>/g;
-
-      var matches;
-      var results = [];
-
-      while ((matches = regex.exec(body)) !== null) {
-        var events = {
-          "Casa de Oração": matches[2].includes("open") ? "Aberto" : "Fechado",
-          Piedade: matches[3].includes("open") ? "Aberto" : "Fechado",
-          Administração: matches[4].includes("open") ? "Aberto" : "Fechado",
-          "Conselho Fiscal": matches[5].includes("open") ? "Aberto" : "Fechado",
-          Contabiliade: matches[6].includes("open") ? "Aberto" : "Fechado",
-        };
-
-        const competencia = matches[1].trim().replace(/&nbsp;/g, "");
-
-        Object.keys(events).forEach((grupo) => {
-          results.push({
-            EVENTO: "Contabilidade Competências",
-            GRUPO: "Casa de Oração",
-            DATA: competencia,
-            IGREJA: this.currentIgreja.desc,
-            OBSERVAÇÕES: `${SEMANA}`,
-            STATUS: events.casaOracao,
-            ID,
-          });
-        });
-      }
-    } catch (error) {}
-
-    return eventos;
-  },
-
-  async loadAll(startDate, endDate) {
-    const igrejas = await coletarIgrejas();
-    const fluxos = [];
-    const eventos = [];
-    try {
-      for (const igreja of siga.igrejas.filter((i) => i.type === 3)) {
-        console.log("Igreja: ", igreja);
-        await this.alterarIgreja(igreja);
-        await this.obterFluxoColetas(startDate, endDate).forEach((e) =>
-          fluxos.push(e)
-        );
-        await this.obterFluxoDespesas().forEach((e) => fluxos.push(e));
-        await this.obterFluxoMapaColeta().forEach((e) => fluxos.push(e));
-        await this.obterFluxoDepositos().forEach((e) => fluxos.push(e));
-        await this.obterEventosSecretaria().forEach((e) => eventos.push(e));
-        await this.obterEventosContabilidadeCompetencias().forEach((e) =>
-          eventos.push(e)
-        );
-        break;
-      }
-    } catch (err) {
-      console.log("Erro ", err);
-      app.error = err.message;
-    } finally {
-      app.loading = false;
-    }
-    return {
-      igrejas,
-      fluxos,
-      eventos,
-    };
+    return [];
   },
 };
+
+export default SIGA;
