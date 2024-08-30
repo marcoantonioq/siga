@@ -1,3 +1,23 @@
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("CCB")
+    .addItem("📊 Painel", "showSIGA")
+    .addItem("⚙️ 1. Configurações", "openConfiguracoes")
+    .addItem("🍪 Salvar Cookie", "openGuiCookie")
+    .addItem("🔄 2. Sincronizar", "run")
+    .addToUi();
+}
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("page");
+}
+
+function showSIGA() {
+  var html = HtmlService.createHtmlOutputFromFile("page")
+    .setTitle("SIGA")
+    .setWidth(600);
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+
 function fetch(requests = {}) {
   try {
     if (!Array.isArray(requests)) {

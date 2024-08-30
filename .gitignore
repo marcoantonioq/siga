@@ -2,3 +2,5 @@
 appsscript.json
 dev.js
 dev.html
+node_modules/
+.venv

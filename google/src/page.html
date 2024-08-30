@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGA</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@master/siga.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      html {
+        min-width: 600px;
+        font-size: 12px;
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-weight: bold;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #fff;
+        transition: background-color 0.3s ease;
+      }
+
+      button.success {
+        background-color: #28a745;
+      }
+
+      button.success:hover {
+        background-color: #218838;
+      }
+
+      button.error {
+        background-color: #dc3545;
+      }
+
+      button.error:hover {
+        background-color: #c82333;
+      }
+
+      button.info {
+        background-color: #007bff;
+      }
+
+      button.info:hover {
+        background-color: #0069d9;
+      }
+
+      button.alert {
+        background-color: #ffc107;
+        color: #212529;
+      }
+
+      button.alert:hover {
+        background-color: #e0a800;
+      }
+
+      .tabs {
+        display: flex;
+        margin: 20px 0 0;
+      }
+
+      .tabs button {
+        padding: 10px 20px;
+        border: 1px solid #ddd;
+        color: #6b6b6b;
+        background: #f1f1f1;
+        margin-right: -1px;
+        cursor: pointer;
+        border-radius: 10px 10px 0 0;
+      }
+
+      .tabs button.active {
+        background: #fff;
+        border-bottom: 2px solid #fff;
+        font-weight: bold;
+        color: #141414 !important;
+      }
+
+      .tab-content {
+        padding: 15px;
+        background: #fff;
+        min-height: 600px;
+        overflow-y: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: #00874a;
+        transform: scaleX(0);
+        transform-origin: left;
+        z-index: 9999;
+        opacity: 0;
+      }
+
+      .progress-bar.is-loading {
+        transform: scaleX(1);
+        animation: blinking 1s linear infinite, move 2s ease-in-out infinite;
+      }
+
+      @keyframes blinking {
+        0%,
+        100% {
+          opacity: 0.2;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes move {
+        0% {
+          transform: translateX(-100%);
+        }
+        50% {
+          transform: translateX(0%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="progress-bar" :class="{ 'is-loading': APP.loading }"></div>
+      <h1>SIGA</h1>
+
+      <div class="form-group">
+        <label for="cookie">Cookie de Navegação:</label>
+        <input
+          type="text"
+          id="cookie"
+          v-model="APP.filter.cookie"
+          placeholder="Digite o cookie de navegação"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="startDate">Data de Início</label>
+        <input
+          type="date"
+          id="startDate"
+          v-model="APP.filter.startDate"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">Data de Término</label>
+        <input
+          type="date"
+          id="endDate"
+          v-model="APP.filter.endDate"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">Unidade / Igreja / ADM / SEC</label>
+        <input
+          type="text"
+          id="endDate"
+          v-model="APP.filter.unidade"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <button class="success" @click="APP.loadAll" :disabled="APP.loading">
+        Carregar
+      </button>
+
+      <div v-if="APP.loading" v-html="APP.message"></div>
+      <div v-if="APP.error" style="color: red">{{ APP.error }}</div>
+
+      <div class="tabs">
+        <button
+          v-for="title in Object.keys(APP.tables)"
+          :key="title"
+          @click="APP.activeTab = title"
+          :class="{ active: APP.activeTab === title }"
+        >
+          {{ title }} ({{APP.tables[title].length}})
+        </button>
+      </div>
+      <div class="tab-content">
+        <div
+          v-for="title in Object.keys(APP.tables)"
+          :key="title"
+          v-show="APP.activeTab === title"
+        >
+          <table
+            v-if="APP.tables[title].length"
+            @click="copyTable(APP.tables[title])"
+          >
+            <thead>
+              <tr>
+                <th
+                  v-for="(key, index) in Object.keys(APP.tables[title][0])"
+                  :key="index"
+                >
+                  {{ key.toUpperCase() }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, r) in APP.tables[title]" :key="r">
+                <td v-for="(value, v) in Object.values(row)" :key="v">
+                  {{ value }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { createApp, reactive, onMounted, watch } = Vue;
+      createApp({
+        setup() {
+          const safeParse = (json, defaultValue) => {
+            try {
+              if (!json) throw "";
+              return JSON.parse(json);
+            } catch (e) {
+              return defaultValue;
+            }
+          };
+          const APP = reactive({
+            now: new Date(),
+            filter: {
+              cookie: localStorage.getItem("cookie") || "",
+              unidade: localStorage.getItem("unidade") || "",
+              startDate:
+                localStorage.getItem("startDate") ||
+                new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1)
+                  .toISOString()
+                  .split("T")[0],
+              endDate:
+                localStorage.getItem("endDate") ||
+                new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+                  .toISOString()
+                  .split("T")[0],
+            },
+            loading: false,
+            error: null,
+            message: "",
+            enable: false,
+            currentIgreja: null,
+            activeTab: "Igrejas",
+            tables: safeParse(localStorage.getItem("tables"), {
+              Igrejas: [],
+              Eventos: [],
+              Fluxos: [],
+            }),
+            async loadAll() {
+              APP.loading = true;
+              APP.error = null;
+              try {
+                await SIGA.login(APP.filter.cookie);
+                APP.message =
+                  "Bem vindo(a) " +
+                  SIGA.username +
+                  "\n</br>Estamos trabalhando...";
+                const result = await SIGA.loadAll(
+                  APP.filter.startDate,
+                  APP.filter.endDate,
+                  APP.filter.unidade
+                );
+                APP.tables.Igrejas = result.igrejas;
+                APP.tables.Eventos = result.eventos;
+                APP.tables.Fluxos = result.fluxos;
+                localStorage.setItem("tables", JSON.stringify(APP.tables));
+                console.log("Result dados SIGA:: ", result);
+              } catch (err) {
+                console.log("Erro ", err);
+                APP.error = err.message;
+              } finally {
+                APP.loading = false;
+              }
+            },
+          });
+
+          watch(
+            () => APP.filter.cookie,
+            async (newValue) => {
+              try {
+                localStorage.setItem("cookie", newValue);
+              } catch (error) {
+                const msg = "Erro ao logar no SIGA::: " + error;
+                console.warn(msg);
+                APP.error = msg;
+              }
+            }
+          );
+
+          watch(
+            () => APP.filter.startDate,
+            async (newValue) => localStorage.setItem("startDate", newValue)
+          );
+
+          watch(
+            () => APP.filter.endDate,
+            async (newValue) => localStorage.setItem("endDate", newValue)
+          );
+
+          watch(
+            () => APP.filter.unidade,
+            async (newValue) => localStorage.setItem("unidade", newValue)
+          );
+
+          const copyTable = (data) => {
+            if (data.length === 0) {
+              return;
+            }
+            const headers = Object.keys(data[0]);
+            const tsvData = [
+              headers.join("\t"),
+              ...data.map((row) =>
+                headers.map((header) => row[header] || "").join("\t")
+              ),
+            ].join("\n");
+            navigator.clipboard
+              .writeText(tsvData)
+              .then(() => {
+                console.log("Dados copiados para clipboard: ", tsvData);
+              })
+              .catch((err) => {
+                console.error("Erro ao copiar os dados:", err);
+              });
+          };
+
+          onMounted(() => {
+            console.log("Mounted");
+          });
+
+          return {
+            APP,
+            copyTable,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>

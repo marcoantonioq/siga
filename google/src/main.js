@@ -1,6 +1,3 @@
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('page');
-}
 
 function run() {
   try {
@@ -1019,13 +1016,4 @@ function openGuiCookie() {
   if (settings.cookie) {
     settings.save()
   }
-}
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("CCB")
-    .addItem("⚙️ 1. Configurações", "openConfiguracoes")
-    .addItem("🔄 2. Sincronizar", "run")
-    .addItem("🍪 Salvar Cookie", "openGuiCookie")
-    .addToUi();
 }

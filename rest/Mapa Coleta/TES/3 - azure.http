@@ -1,0 +1,50 @@
+POST https://brazilsouth-1.in.applicationinsights.azure.com/v2/track
+Content-Type: application/json
+Accept: */*
+Accept-Language: pt-BR
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.100 Safari/537.36
+Sec-Ch-Ua: "Chromium";v="127", "Not)A;Brand";v="99"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: "Linux"
+Origin: https://siga.congregacao.org.br
+Sec-Fetch-Site: cross-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://siga.congregacao.org.br/
+Accept-Encoding: gzip, deflate, br
+Priority: u=1, i
+
+[
+  {
+    "time": "2024-08-30T19:09:11.165Z",
+    "iKey": "78e636c3-1122-4dd6-b6f6-a284e3c70c6e",
+    "name": "Microsoft.ApplicationInsights.78e636c311224dd6b6f6a284e3c70c6e.RemoteDependency",
+    "tags": {
+      "ai.user.id": "tViIkAYJJCvvYO8nzKD0nB",
+      "ai.session.id": "TeFd1A+uTXXBJ/LkOvn5Sc",
+      "ai.device.id": "browser",
+      "ai.device.type": "Browser",
+      "ai.operation.name": "/page.aspx",
+      "ai.operation.id": "1fb13059aa98497ba33a080472a79a92",
+      "ai.internal.sdkVersion": "javascript:3.3.1"
+    },
+    "data": {
+      "baseType": "RemoteDependencyData",
+      "baseData": {
+        "id": "|1fb13059aa98497ba33a080472a79a92.95e7d399871d48a1.",
+        "ver": 2,
+        "name": "POST ../UTIL/UtilWS.asmx/ValidaPeriodo",
+        "resultCode": "200",
+        "duration": "00:00:49.211",
+        "success": true,
+        "data": "POST ../UTIL/UtilWS.asmx/ValidaPeriodo",
+        "target": "siga.congregacao.org.br | cid-v1:f2c58180-9c1f-40b3-95f4-1e7b4ac71455",
+        "type": "Ajax",
+        "properties": {
+          "HttpMethod": "POST"
+        },
+        "measurements": {}
+      }
+    }
+  }
+]
