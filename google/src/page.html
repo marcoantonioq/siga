@@ -10,16 +10,26 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
       rel="stylesheet"
     />
-    <!-- SIGA -->
-    <script src="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@1.0.1/google/src/siga.js"></script>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@1.0.1/google/src/style.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
     />
+    <!-- SIGA -->
+    <!-- <script src="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@1.0.1/google/src/siga.js"></script> -->
+    <!-- <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@1.0.1/google/src/style.css"
+    /> -->
+    <script src="./siga.js"></script>
+    <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
     <div id="app">
+      <button @click="toggleFullscreen" id="fullscreen-btn">
+        <i class="fas fa-expand"></i>
+      </button>
+
       <div class="progress-bar" :class="{ 'is-loading': APP.loading }"></div>
       <h1>SIGA</h1>
 
@@ -147,6 +157,7 @@
             enable: false,
             currentIgreja: null,
             activeTab: "Igrejas",
+            isFullscreen: false,
             tables: safeParse(localStorage.getItem("tables"), {
               Igrejas: [],
               Eventos: [],
@@ -229,6 +240,32 @@
               });
           };
 
+          const toggleFullscreen = () => {
+            const element = document.getElementById("app");
+
+            const requestFullscreen =
+              element.requestFullscreen ||
+              element.mozRequestFullScreen ||
+              element.webkitRequestFullscreen ||
+              element.msRequestFullscreen;
+
+            if (!document.fullscreenElement) {
+              requestFullscreen?.call(element).then(() => {
+                element.classList.add("fullscreen-active");
+              });
+              APP.isFullscreen = true;
+            } else {
+              APP.isFullscreen = false;
+              if (document.exitFullscreen) {
+                document.exitFullscreen();
+              }
+            }
+          };
+
+          const fullscreenIcon = () => {
+            return APP.isFullscreen ? "fas fa-compress" : "fas fa-expand";
+          };
+
           onMounted(() => {
             console.log("Mounted");
           });
@@ -236,6 +273,7 @@
           return {
             APP,
             copyTable,
+            toggleFullscreen,
           };
         },
       }).mount("#app");
