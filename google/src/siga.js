@@ -895,5 +895,3 @@ const SIGA = {
     };
   },
 };
-
-export default SIGA;
