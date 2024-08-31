@@ -2,9 +2,6 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("CCB")
     .addItem("📊 Painel", "showSIGA")
-    .addItem("⚙️ 1. Configurações", "openConfiguracoes")
-    .addItem("🍪 Salvar Cookie", "openGuiCookie")
-    .addItem("🔄 2. Sincronizar", "run")
     .addToUi();
 }
 function doGet() {
