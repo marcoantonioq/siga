@@ -4,3 +4,4 @@ dev.js
 dev.html
 node_modules/
 .venv
+res
