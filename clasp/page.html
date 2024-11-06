@@ -1,253 +1,299 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <!-- 
-/**
- * Projeto em:
- * https://github.com/marcoantonioq/siga-puppeteer
- */
-  -->
-    <base target="_top" />
-    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        background-color: #f4f4f4;
-      }
-      h1 {
-        color: #3498db;
-        text-align: center;
-      }
-      .form-container {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-      .form-group {
-        margin-bottom: 15px;
-      }
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: #333;
-      }
-      input[type="date"],
-      input[type="text"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-        transition: border-color 0.3s;
-      }
-      input[type="date"]:focus,
-      input[type="text"]:focus {
-        border-color: #3498db;
-        outline: none;
-      }
-      button {
-        width: 100%;
-        padding: 10px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s;
-      }
-      button:hover {
-        background-color: #2980b9;
-      }
-      .loader {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-        margin: 20px auto;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      .loading-text {
-        text-align: center;
-        margin-top: 10px;
-      }
-      .error {
-        color: red;
-        text-align: center;
-        margin-top: 10px;
-      }
-    </style>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      rel="icon"
+      href="https://raw.githubusercontent.com/marcoantonioq/siga-google/main/public/favicon.ico"
+    />
+    <title>SIGA</title>
+    <script defer="defer" src="/js/app.js"></script>
+    <link href="/css/app.css" rel="stylesheet" />
+    <!-- <script src="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@dev/google/src/siga.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@dev/google/src/style.css" /> -->
   </head>
   <body>
+    <noscript><strong>Necessário javascript.</strong></noscript>
+    <div id="app"></div>
+  </body>
+</html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGA</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- SIGA -->
+    <!-- <script src="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@dev/google/src/siga.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/marcoantonioq/siga@dev/google/src/style.css" /> -->
+    <script src="./siga.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
     <div id="app">
-      <div class="form-container">
-        <div class="form-group">
-          <label for="dataInicial">Data Inicial*:</label>
-          <input type="date" id="dataInicial" v-model="data.date1" />
+      <button @click="toggleFullscreen" id="fullscreen-btn">
+        <i class="fas fa-expand"></i>
+      </button>
+
+      <div class="progress-bar" :class="{ 'is-loading': APP.loading }"></div>
+      <h1>SIGA</h1>
+
+      <div class="form-group">
+        <label for="cookie">Cookie de Navegação:</label>
+        <input
+          type="text"
+          id="cookie"
+          v-model="APP.filter.cookie"
+          placeholder="Digite o cookie de navegação"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="startDate">Data de Início</label>
+        <input
+          type="date"
+          id="startDate"
+          v-model="APP.filter.startDate"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">Data de Término</label>
+        <input
+          type="date"
+          id="endDate"
+          v-model="APP.filter.endDate"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">Unidade / Igreja / ADM / SEC</label>
+        <input
+          type="text"
+          id="endDate"
+          v-model="APP.filter.unidade"
+          :disabled="APP.loading"
+        />
+      </div>
+
+      <button class="success" @click="APP.loadAll" :disabled="APP.loading">
+        Carregar
+      </button>
+
+      <div v-if="APP.loading" v-html="APP.message"></div>
+      <div v-if="APP.error" style="color: red">{{ APP.error }}</div>
+
+      <div class="tabs">
+        <button
+          v-for="title in Object.keys(APP.tables)"
+          :key="title"
+          @click="APP.activeTab = title"
+          :class="{ active: APP.activeTab === title }"
+        >
+          {{ title }} ({{APP.tables[title].length}})
+        </button>
+      </div>
+      <div class="tab-content">
+        <div
+          v-for="title in Object.keys(APP.tables)"
+          :key="title"
+          v-show="APP.activeTab === title"
+        >
+          <table
+            v-if="APP.tables[title].length"
+            @click="copyTable(APP.tables[title])"
+          >
+            <thead>
+              <tr>
+                <th
+                  v-for="(key, index) in Object.keys(APP.tables[title][0])"
+                  :key="index"
+                >
+                  {{ key.toUpperCase() }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, r) in APP.tables[title]" :key="r">
+                <td v-for="(value, v) in Object.values(row)" :key="v">
+                  {{ value }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="form-group">
-          <label for="dataFinal">Data Final*:</label>
-          <input type="date" id="dataFinal" v-model="data.date2" />
-        </div>
-        <div class="form-group">
-          <label for="filtro">Filtro:</label>
-          <input
-            type="text"
-            id="filtro"
-            v-model="data.filter"
-            placeholder="Filtrar por administração (nome)"
-          />
-        </div>
-        <div class="form-group">
-          <label for="cookies">Cookies*:</label>
-          <input
-            type="text"
-            id="cookies"
-            v-model="data.cookies"
-            placeholder="Digite os cookies"
-          />
-        </div>
-        <button @click="loadData" :disabled="loading">Carregar</button>
-        <div class="loader" v-show="loading"></div>
-        <div class="loading-text" v-if="loading">{{ loadingText }}</div>
-        <div class="error" v-if="errorMessage" v-html="errorMessage"></div>
       </div>
     </div>
 
     <script>
-      const { createApp, ref } = Vue;
-
+      const { createApp, reactive, onMounted, watch } = Vue;
       createApp({
         setup() {
-          const loading = ref(false);
-          const loadingText = ref("");
-          const errorMessage = ref("");
-          const attemptCount = ref(0);
-          const maxAttempts = 5;
-
-          const data = ref({
-            username: ".",
-            date1: "",
-            date2: "",
-            filter: "",
-            cookies: "",
+          const safeParse = (json, defaultValue) => {
+            try {
+              if (!json) throw "";
+              return JSON.parse(json);
+            } catch (e) {
+              return defaultValue;
+            }
+          };
+          const APP = reactive({
+            now: new Date(),
+            filter: {
+              cookie: localStorage.getItem("cookie") || "",
+              unidade: localStorage.getItem("unidade") || "",
+              startDate:
+                localStorage.getItem("startDate") ||
+                new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1)
+                  .toISOString()
+                  .split("T")[0],
+              endDate:
+                localStorage.getItem("endDate") ||
+                new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+                  .toISOString()
+                  .split("T")[0],
+            },
+            loading: false,
+            error: null,
+            message: "",
+            enable: false,
+            currentIgreja: null,
+            activeTab: "Igrejas",
+            isFullscreen: false,
+            tables: safeParse(localStorage.getItem("tables"), {
+              Igrejas: [],
+              Eventos: [],
+              Fluxos: [],
+            }),
+            async loadAll() {
+              APP.loading = true;
+              APP.error = null;
+              try {
+                await SIGA.login(APP.filter.cookie);
+                APP.message =
+                  "Bem vindo(a) " +
+                  SIGA.username +
+                  "\n</br>Estamos trabalhando...";
+                const result = await SIGA.loadAll(
+                  APP.filter.startDate,
+                  APP.filter.endDate,
+                  APP.filter.unidade
+                );
+                APP.tables.Igrejas = result.igrejas;
+                APP.tables.Eventos = result.eventos;
+                APP.tables.Fluxos = result.fluxos;
+                localStorage.setItem("tables", JSON.stringify(APP.tables));
+                console.log("Result dados SIGA:: ", result);
+              } catch (err) {
+                console.log("Erro ", err);
+                APP.error = err.message;
+              } finally {
+                APP.loading = false;
+              }
+            },
           });
 
-          const loadFromLocalStorage = () => {
-            const storedData =
-              JSON.parse(localStorage.getItem("siga.data")) || {};
-            data.value = { ...data.value, ...storedData };
-          };
-
-          const saveDataToLocalStorage = () => {
-            localStorage.setItem("siga.data", JSON.stringify(data.value));
-          };
-
-          const validateInputs = () => {
-            if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
-              errorMessage.value =
-                "Por favor, preencha todos os campos obrigatórios.";
-              return false;
-            }
-            errorMessage.value = "";
-            return true;
-          };
-
-          const sleep = (ms) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-
-          const loadData = async () => {
-            if (!validateInputs()) return;
-
-            loading.value = true;
-            loadingText.value = "Carregando... Por favor, aguarde.";
-            saveDataToLocalStorage();
-            attemptCount.value = 0;
-
-            while (attemptCount.value < maxAttempts) {
+          watch(
+            () => APP.filter.cookie,
+            async (newValue) => {
               try {
-                attemptCount.value += 1;
-                await attemptLoadData();
-                loadingText.value = `Tentativa ${
-                  attemptCount.value + 1
-                } de ${maxAttempts}...`;
-                console.log(loadingText.value);
+                localStorage.setItem("cookie", newValue);
               } catch (error) {
-                await sleep(5 * 60 * 1000);
-                console.log("Erro loadData: ", error);
+                const msg = "Erro ao logar no SIGA::: " + error;
+                console.warn(msg);
+                APP.error = msg;
               }
             }
-            errorMessage.value =
-              "Erro ao carregar dados após várias tentativas.";
-            resetLoading();
+          );
+
+          watch(
+            () => APP.filter.startDate,
+            async (newValue) => localStorage.setItem("startDate", newValue)
+          );
+
+          watch(
+            () => APP.filter.endDate,
+            async (newValue) => localStorage.setItem("endDate", newValue)
+          );
+
+          watch(
+            () => APP.filter.unidade,
+            async (newValue) => localStorage.setItem("unidade", newValue)
+          );
+
+          const copyTable = (data) => {
+            if (data.length === 0) {
+              return;
+            }
+            const headers = Object.keys(data[0]);
+            const tsvData = [
+              headers.join("\t"),
+              ...data.map((row) =>
+                headers.map((header) => row[header] || "").join("\t")
+              ),
+            ].join("\n");
+            navigator.clipboard
+              .writeText(tsvData)
+              .then(() => {
+                console.log("Dados copiados para clipboard: ", tsvData);
+              })
+              .catch((err) => {
+                console.error("Erro ao copiar os dados:", err);
+              });
           };
 
-          const attemptLoadData = () => {
-            return new Promise((resolve, reject) => {
-              google.script.run
-                .withSuccessHandler((data) =>
-                  handleResponse(data, resolve, reject)
-                )
-                .withFailureHandler((error) =>
-                  handleError(error, resolve, reject)
-                )
-                .baixarSiga(data.value);
-            });
-          };
+          const toggleFullscreen = () => {
+            const element = document.getElementById("app");
 
-          const handleResponse = (data, resolve, reject) => {
-            if (data.success) {
-              loading.value = false;
-              resetLoading();
-              google.script.host.close();
-              resolve(data);
+            const requestFullscreen =
+              element.requestFullscreen ||
+              element.mozRequestFullScreen ||
+              element.webkitRequestFullscreen ||
+              element.msRequestFullscreen;
+
+            if (!document.fullscreenElement) {
+              requestFullscreen?.call(element).then(() => {
+                element.classList.add("fullscreen-active");
+              });
+              APP.isFullscreen = true;
             } else {
-              errorMessage.value = data.errors
-                ? data.errors.join("</br>\n")
-                : "";
-              reject(new Error(errorMessage.value));
+              APP.isFullscreen = false;
+              if (document.exitFullscreen) {
+                document.exitFullscreen();
+              }
             }
           };
 
-          const handleError = (error, resolve, reject) => {
-            console.log("Error::: ", error);
-            if (
-              ["autorização", "permissão"].some((t) =>
-                String(error).includes(t)
-              )
-            ) {
-              errorMessage.value =
-                "Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.";
-            } else {
-              errorMessage.value = error;
-            }
-
-            loading.value = false;
-            reject(new Error(errorMessage.value));
+          const fullscreenIcon = () => {
+            return APP.isFullscreen ? "fas fa-compress" : "fas fa-expand";
           };
 
-          const resetLoading = () => {
-            loading.value = false;
-            loadingText.value = "";
+          onMounted(() => {
+            console.log("Mounted");
+          });
+
+          return {
+            APP,
+            copyTable,
+            toggleFullscreen,
           };
-
-          loadFromLocalStorage();
-
-          return { loading, loadingText, loadData, data, errorMessage };
         },
       }).mount("#app");
     </script>

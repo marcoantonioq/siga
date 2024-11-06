@@ -1,93 +1,62 @@
-/**
- * Projeto em:
- * https://github.com/marcoantonioq/siga-puppeteer
- */
-const API_URL = "https://node.goias.ifg.edu.br/api/siga";
-
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("CCB")
-    .addItem("📊 SIGA", "showPage")
+    .addItem("📊 Painel", "showSIGA")
     .addToUi();
 }
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("page");
+}
 
-function baixarSiga(payload = { username: "." }) {
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true,
-    timeout: 250000,
-  };
+function showSIGA() {
+  var html = HtmlService.createHtmlOutputFromFile("page")
+    .setTitle("SIGA")
+    .setWidth(600);
+  SpreadsheetApp.getUi().showSidebar(html);
+}
 
-  const msg = { success: false, errors: [] };
-
+function fetch(requests = { url: "" }) {
   try {
-    const response = UrlFetchApp.fetch(API_URL, options);
-
-    if (response.getResponseCode() !== 200) {
-      throw new Error(`Erro HTTP: ${response.getResponseCode()}`);
+    if (!Array.isArray(requests)) {
+      requests = [requests];
     }
 
-    const parsedResponse = JSON.parse(response.getContentText());
+    const payloads = requests.map((options) => {
+      if (options?.headers?.["Content-Type"]?.includes("multipart/form-data")) {
+        const boundary =
+          "----WebKitFormBoundary" + Math.random().toString(36).substring(2);
+        options.headers[
+          "Content-Type"
+        ] = `multipart/form-data; boundary=${boundary}`;
 
-    if (parsedResponse.success && parsedResponse.tables?.igrejas?.length) {
-      criarTabelasNoGoogleSheets(parsedResponse);
-    } else {
-      msg.errors.push("Dados inválidos ou sem igrejas na resposta.");
-    }
-
-    console.log("Dados retornados: ", JSON.stringify(parsedResponse, null, 2));
-    return { ...msg, ...parsedResponse };
-  } catch (error) {
-    handleFetchError(error, msg);
-    return msg;
-  }
-}
-
-function handleFetchError(error, msg) {
-  const message = `Falha ao conectar no servidor. Reconectando... \n</br>Erro: ${
-    error.message || error
-  }`;
-  msg.errors.push(message);
-  console.error(message);
-}
-
-function criarTabelasNoGoogleSheets(msg) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  for (const tableName in msg.tables) {
-    const data = msg.tables[tableName];
-    const sheet = ss.getSheetByName(tableName) || ss.insertSheet(tableName);
-    sheet.clear();
-
-    if (data.length > 0) {
-      const headers = Object.keys(data[0]);
-      const rows = data.map((row) =>
-        headers.map((header) =>
-          ["DATA", "UPDATED", "CREATED"].includes(header) && row[header]
-            ? new Date(row[header])
-            : row[header]
-        )
-      );
-      rows.unshift(headers);
-      sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
-
-      headers.forEach((header, i) => {
-        if (["DATA", "UPDATED", "CREATED"].includes(header)) {
-          sheet
-            .getRange(1, i + 1, rows.length - 1)
-            .setNumberFormat("dd/MM/yyyy HH:mm");
+        let payload = "";
+        for (const [key, value] of Object.entries(options.payload)) {
+          payload += `--${boundary}\n`;
+          payload += `Content-Disposition: form-data; name="${key}"\n\n`;
+          payload += `${value}\n`;
         }
-      });
-    }
+        payload += `--${boundary}--\n`;
+        options.payload = payload;
+      }
+      return options;
+    });
+
+    const responses = UrlFetchApp.fetchAll(payloads).map((response) => {
+      const blob = response.getBlob();
+      const headers = response.getHeaders();
+      return {
+        code: response.getResponseCode(),
+        body: response.getContentText(),
+        type: blob.getContentType() || headers["Content-Type"],
+        blobBytes: blob.getBytes(),
+        headers,
+      };
+    });
+
+    return responses.length === 1 ? responses[0] : responses;
+  } catch (error) {
+    const msg = `Erro ao processar fetch: ${error}`;
+    console.error(msg);
+    throw new Error(msg);
   }
-}
-
-function showPage() {
-  const html = HtmlService.createHtmlOutputFromFile("page")
-    .setWidth(400)
-    .setHeight(600);
-
-  SpreadsheetApp.getUi().showModalDialog(html, "Carregar Dados");
 }
