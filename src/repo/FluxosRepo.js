@@ -1,66 +1,23 @@
-import { Fluxo } from "../core/Fluxo.js";
-import { HTTPClient } from "../infra/http/index.js";
-import { sheet } from "../infra/sheet/index.js";
-import { betweenDates } from "../util/date.js";
-import { sleep } from "../util/sleep.js";
-
-const requests = {
-  despesas: {
-    url: "https://siga.congregacao.org.br/TES/TES00902.aspx",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    data: {
-      f_data1: "",
-      f_data2: "",
-      f_estabelecimento: "",
-      f_centrocusto: "",
-      f_fornecedor: "",
-      f_formato: "TES00902.aspx",
-      f_saidapara: "Excel",
-      f_agrupar: "CentrodeCustoSetor",
-      __initPage__: "S",
-    },
-  },
-  coletas: {
-    method: "post",
-    url: "https://siga.congregacao.org.br/TES/TES00501.aspx",
-    data: {
-      f_consultar: "S",
-      f_data1: "",
-      f_data2: "",
-      f_estabelecimento: "",
-      f_filtro_relatorio: "",
-      f_formacontribuicao: "0",
-      f_opcao2: "casaoracao",
-      f_detalhar: "true",
-      f_exibir: "comvalor",
-      f_agrupar: "",
-      f_detalhar: "true",
-      f_saidapara: "Excel",
-      f_ordenacao: "alfabetica",
-      __initPage__: "S",
-      __jqSubmit__: "S",
-    },
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  },
-};
+import * as cheerio from 'cheerio'
+import { Fluxo } from '../core/Fluxo.js'
+import { HTTPClient } from '../infra/http/index.js'
+import { excelDateToJSDate, sheet } from '../infra/sheet/index.js'
+import { betweenDates } from '../util/date.js'
+import { sleep } from '../util/sleep.js'
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
  */
 export class FluxosRepo {
-  #client;
+  #client
   /**
    * Construtor da classe FluxoRepo.
    * @param {Fluxo[]} [fluxos=[]] - Um array opcional de objetos Fluxo
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(fluxos = [], client) {
-    this.fluxos = fluxos;
-    this.#client = client;
+    this.fluxos = fluxos
+    this.#client = client
   }
 
   /**
@@ -74,34 +31,50 @@ export class FluxosRepo {
    * @returns {Promise<Fluxo[]>} Uma Promise que resolve para um array de objetos `FluxoData`, representando as despesas obtidas.
    */
   async getDespesas(startDate, endDate, estabelecimento) {
-    const despesas = [];
+    const despesas = []
     try {
-      const data = requests.despesas.data;
-      data.f_data1 = startDate.split("-").reverse().join("/");
-      data.f_data2 = endDate.split("-").reverse().join("/");
-      data.f_estabelecimento = estabelecimento;
-      const result = await this.#client.fetch(requests.despesas);
-      const values = await sheet.blobBytesToArray(result.data);
-      let Localidade = "",
-        Ref = "";
+      const result = await this.#client.fetch({
+        method: 'post',
+        url: 'https://siga.congregacao.org.br/TES/TES00902.aspx',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        data: {
+          f_data1: startDate.split('-').reverse().join('/'),
+          f_data2: endDate.split('-').reverse().join('/'),
+          f_estabelecimento: estabelecimento,
+          f_centrocusto: '',
+          f_fornecedor: '',
+          f_formato: 'TES00902.aspx',
+          f_saidapara: 'Excel',
+          f_agrupar: 'CentrodeCustoSetor',
+          __initPage__: 'S',
+        },
+      })
 
-      console.log("Resultados:::: ", values);
+      if (result.type !== 'application/vnd.ms-excel') {
+        console.error('Retorno inválido para despesas: ', result.type)
+        return []
+      }
+      const values = await sheet.blobBytesToArray(result.blobBytes)
+      let Localidade = '',
+        Ref = ''
 
       values.forEach((row) => {
         try {
           if (Array.isArray(row) && row.length) {
             if (/^Mês \d\d\/\d+/.test(`${row[0]}`)) {
-              const [, mm, yyyy] = row[0].match(/(\d{2})\/(\d{4})/);
-              Ref = `${mm}/${yyyy}`;
+              const [, mm, yyyy] = row[0].match(/(\d{2})\/(\d{4})/)
+              Ref = `${mm}/${yyyy}`
             } else if (
               /^(BR \d+-\d+|^ADM|^PIA|^SET)/.test(`${row[0]}`) ||
               row.length === 1
             ) {
-              Localidade = row[0];
+              Localidade = row[0]
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
                 Fluxo.create({
-                  FLUXO: "Saída",
+                  FLUXO: 'Saída',
                   IGREJA: Localidade,
                   IGREJA_DESC: Localidade,
                   CATEGORIA: row[6],
@@ -111,129 +84,115 @@ export class FluxosRepo {
                   VALOR: row[30] || 0,
                   OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
                   REF: Ref,
-                  ORIGEM: "SIGA",
+                  ORIGEM: 'SIGA',
                 })
-              );
+              )
             }
           }
         } catch (error) {
-          console.warn("Falha ao procurar em linhas de despesas: ", error);
+          console.warn('Falha ao procurar em linhas de despesas: ', error)
         }
-      });
+      })
     } catch (error) {
-      console.error(
-        "!!!! Erro ao coletar despesa: Permissão de acesso!",
-        error
-      );
+      console.error('!!!! Erro ao coletar despesa: Permissão de acesso!', error)
     }
-    return despesas;
+
+    return despesas
   }
 
-  async getColetas(startDate, endDate, filtro_relatorio) {
-    const fluxos = [];
+  async getColetas(startDate, endDate) {
+    const fluxos = []
     for (const { start, end, ref } of betweenDates(startDate, endDate)) {
-      var result = [];
+      var result = []
       try {
-        await this.#client.fetch({
-          method: "get",
-          url: "https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S",
-        });
+        const response = await this.#client.fetch({
+          method: 'get',
+          url: 'https://siga.congregacao.org.br/TES/TES00501.aspx',
+        })
 
-        await this.#client.validaPeriodo(start, end);
+        const $ = cheerio.load(response.data)
+        const filtro_relatorio = $('#dropdown_localidades li')
+          .map((_, el) => $(el).attr('id'))
+          .get()
+          .join(', ')
 
         result = await this.#client.fetch({
-          method: "post",
-          url: "https://siga.congregacao.org.br/TES/TES00501.aspx",
+          method: 'post',
+          url: 'https://siga.congregacao.org.br/TES/TES00501.aspx',
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
           data: {
-            f_consultar: "S",
-            f_data1: start.split("-").reverse().join("/"),
-            f_data2: end.split("-").reverse().join("/"),
-            f_estabelecimento: "",
+            f_consultar: 'S',
+            f_data1: start.split('-').reverse().join('/'),
+            f_data2: end.split('-').reverse().join('/'),
+            f_estabelecimento: '',
             f_filtro_relatorio: filtro_relatorio,
-            f_formacontribuicao: "0",
-            f_opcao2: "casaoracao",
-            f_detalhar: "true",
-            f_exibir: "comvalor",
-            f_agrupar: "",
-            f_detalhar: "true",
-            f_saidapara: "Excel",
-            f_ordenacao: "alfabetica",
-            __initPage__: "S",
-            __jqSubmit__: "S",
+            f_formacontribuicao: '0',
+            f_opcao2: 'casaoracao',
+            f_detalhar: 'true',
+            f_exibir: 'comvalor',
+            f_agrupar: '',
+            f_saidapara: 'Excel',
+            f_ordenacao: 'alfabetica',
+            __initPage__: 'S',
+            __jqSubmit__: 'S',
           },
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        })
+
+        await sleep(500)
+
         result = await this.#client.fetch({
-          method: "post",
-          url: "https://siga.congregacao.org.br/TES/TES00501.aspx",
+          method: 'post',
+          url: 'https://siga.congregacao.org.br/TES/TES00507.aspx',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
           data: {
-            f_consultar: "S",
-            f_data1: start.split("-").reverse().join("/"),
-            f_data2: end.split("-").reverse().join("/"),
-            f_estabelecimento: "",
-            f_filtro_relatorio: filtro_relatorio,
-            f_formacontribuicao: "0",
-            f_opcao2: "casaoracao",
-            f_exibir: "comvalor",
-            f_detalhar: "true",
-            f_saidapara: "Excel",
-            f_ordenacao: "alfabetica",
-            __initPage__: "S",
-            __jqSubmit__: "S",
+            f_saidapara: 'Excel',
+            __initPage__: 'S',
           },
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        await sleep(3000);
-
-        result = await this.#client.fetch({
-          method: "post",
-          url: "https://siga.congregacao.org.br/TES/TES00507.aspx",
-          data: "f_saidapara=Excel&__initPage__=S",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        });
+        })
 
         if (!result.blobBytes) {
-          console.error("Falha ao gerar o relatório!");
-          continue;
+          console.error(
+            'Falha ao gerar o relatório de coletas: ',
+            start,
+            filtro_relatorio
+          )
+          continue
         }
 
-        const values = await sheet.blobBytesToArray(result.blobBytes);
+        const values = await sheet.blobBytesToArray(result.blobBytes)
 
-        var nomeIgreja = "",
-          headers = "",
-          tipo = "";
+        var nomeIgreja = '',
+          headers = '',
+          tipo = ''
 
         for (var i = 0; i < values.length; i++) {
           if (/^Total/.test(values[i][0])) {
-            nomeIgreja = "";
-            continue;
+            nomeIgreja = ''
+            continue
           } else if (/^Todos/.test(values[i][0])) {
-            break;
+            break
           } else if (/^Casa de Oração/.test(`${values[i][0]}`)) {
-            headers = values[i];
+            headers = values[i]
           } else if (/^(SET|BR|ADM)/.test(values[i][0])) {
-            nomeIgreja = values[i][0];
+            nomeIgreja = values[i][0]
           }
 
           if (/^Tipo/.test(values[i][6])) {
-            continue;
+            continue
           } else if (/[a-z]/i.test(values[i][6])) {
-            tipo = values[i][6];
+            tipo = values[i][6]
 
             for (let x = 7; x < headers.length; x++) {
-              if (headers[x] === "Total") break;
-              if (!headers[x] || !/^[1-9]/.test(values[i][x])) continue;
+              if (headers[x] === 'Total') break
+              if (!headers[x] || !/^[1-9]/.test(values[i][x])) continue
 
               fluxos.push(
                 Fluxo.create({
-                  FLUXO: "Coleta",
+                  FLUXO: 'Coleta',
                   IGREJA: nomeIgreja,
                   IGREJA_DESC: nomeIgreja,
                   CATEGORIA: tipo,
@@ -241,106 +200,110 @@ export class FluxosRepo {
                   VALOR: values[i][x],
                   OBSERVACOES: headers[x],
                   REF: ref,
-                  ORIGEM: "SIGA",
+                  ORIGEM: 'SIGA',
                 })
-              );
+              )
             }
           }
         }
       } catch (error) {
         console.error(
-          "!!! Erro ao baixar fluxo de Mapa Coletas: Permissão de acesso!",
+          '!!! Erro ao baixar fluxo de Mapa Coletas: Permissão de acesso!',
           error
-        );
+        )
       }
     }
-    return fluxos;
+
+    return fluxos
   }
 
   async getDepositos(startDate, endDate, estabelecimento) {
-    const fluxos = [];
+    const fluxos = []
     try {
-      const refs = betweenDates(startDate, endDate).map((e) => e.ref);
+      const refs = betweenDates(startDate, endDate).map((e) => e.ref)
 
       var result = await this.#client.fetch({
-        url: "https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S",
-      });
+        url: 'https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S',
+      })
 
       const selectMatch =
         /<select[^>]*id="f_competencia"[^>]*>([\s\S]*?)<\/select>/i.exec(
           result.data
-        );
-      var competencias = [];
+        )
+
+      var competencias = []
+
       if (selectMatch) {
-        const optionsHtml = selectMatch[1];
-        const optionRegex = /<option[^>]*value="([^"]*)".*?>(.*?)<\/option>/gi;
-        var match;
+        const optionsHtml = selectMatch[1]
+        const optionRegex = /<option[^>]*value="([^"]*)".*?>(.*?)<\/option>/gi
+        var match
         while ((match = optionRegex.exec(optionsHtml)) !== null) {
-          if (!match[2].includes("Todos") && refs.includes(match[2])) {
+          if (!match[2].includes('Todos') && refs.includes(match[2])) {
             competencias.push({
               value: match[1],
               description: match[2],
-            });
+            })
           }
         }
       }
+
       for (const { value: competencia } of competencias) {
         try {
-          try {
-            result = await this.#client.fetch({
-              url: "https://siga.congregacao.org.br/TES/TES00702.aspx",
-              method: "post",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              data:
-                "f_competencia=" +
-                competencia +
-                "&f_data1=&f_data2=&f_estabelecimento=" +
-                estabelecimento +
-                "&f_saidapara=Excel&f_ordenacao=alfabetica&__initPage__=S",
-            });
-          } catch (error) {
-            console.warn("Erro baixar depositos: ", competencia);
-            continue;
+          result = await this.#client.fetch({
+            url: 'https://siga.congregacao.org.br/TES/TES00702.aspx',
+            method: 'post',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+              f_competencia: competencia,
+              f_data1: '',
+              f_data2: '',
+              f_estabelecimento: estabelecimento,
+              f_saidapara: 'Excel',
+              f_ordenacao: 'alfabetica',
+              __initPage__: 'S',
+            },
+          })
+
+          if (result.type !== 'application/vnd.ms-excel') {
+            console.error('Erro ao baixar deposito: ', competencia)
+            continue
           }
 
-          if (result.type.includes("text/html")) {
-            console.error("Erro ao baixar deposito: ", competencia);
-            continue;
-          }
+          const values = await sheet.blobBytesToArray(result.blobBytes)
 
-          const values = await sheet.blobBytesToArray(result.blobBytes);
-
-          var igrejaNome = "";
-          var ref = values[9][14];
+          var igrejaNome = ''
+          var ref = values[9][14]
 
           for (var i = 0; i < values.length; i++) {
             if (/^(SET|ADM|BR|PIA)/.test(`${values[i][0]}`)) {
-              igrejaNome = values[i][0];
+              igrejaNome = values[i][0]
             } else if (/^\d\d\/\d{4}/.test(values[i][2])) {
-              ref = values[i][2];
+              ref = values[i][2]
               fluxos.push(
                 Fluxo.create({
-                  FLUXO: "Deposito",
+                  FLUXO: 'Deposito',
                   IGREJA: igrejaNome,
                   IGREJA_DESC: igrejaNome,
-                  DATA: values[i][3],
+                  DATA: new Date(excelDateToJSDate(values[i][3])),
                   VALOR: values[i][18],
-                  OBSERVAÇÕES: values[i][7],
+                  OBSERVACOES:
+                    'Conta: ' + values[i][7] + '; Documento: ' + values[i][16],
                   REF: ref,
-                  ORIGEM: "SIGA",
+                  ORIGEM: 'SIGA',
                 })
-              );
+              )
             }
           }
         } catch (error) {
-          console.warn("Erro ao processar deposito: ", competencia, error);
+          console.warn('Erro ao processar deposito: ', competencia, error)
         }
       }
     } catch (erro) {
-      console.warn("FluxoDepositos: ", erro);
+      console.warn('FluxoDepositos: ', erro)
     }
-    return fluxos;
+
+    return fluxos
   }
 }

@@ -25,21 +25,21 @@ export class Request {
   constructor({
     url,
     headers = {
-      "Content-Type": "application/json",
+      'Content-Type': '',
     },
-    method = "get",
+    method = 'get',
     data = null,
     timeout = 5000,
   }) {
-    if (method !== "get" && method !== "post") {
-      throw new Error('Método inválido. Use "GET" ou "POST".');
+    if (method !== 'get' && method !== 'post') {
+      throw new Error('Método inválido. Use "GET" ou "POST".')
     }
 
-    this.url = url;
-    this.headers = headers;
-    this.method = method;
-    this.data = data;
-    this.timeout = timeout;
+    this.url = url
+    this.headers = headers
+    this.method = method
+    this.data = data
+    this.timeout = timeout
   }
 
   /**
@@ -48,6 +48,6 @@ export class Request {
    * @returns {Request} Uma nova instância de Request.
    */
   static create(options) {
-    return new Request(options);
+    return new Request(options)
   }
 }

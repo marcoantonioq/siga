@@ -16,14 +16,15 @@ export class Igreja {
    * Cria uma instância de Igreja.
    * @param {IgrejaData} options - As opções para configurar a igreja.
    */
+
   constructor({
-    IGREJA = "",
+    IGREJA = '',
     IGREJA_COD = 0,
-    IGREJA_DESC = "",
+    IGREJA_DESC = '',
     IGREJA_TIPO = 0,
-    IGREJA_ADM = "",
-    REGIONAL = "",
-    CATEGORIA = "",
+    IGREJA_ADM = '',
+    REGIONAL = '',
+    CATEGORIA = '',
     UNIDADE_COD = 0,
     MEMBROS = 0,
     CREATED = new Date(),
@@ -40,7 +41,7 @@ export class Igreja {
       MEMBROS,
       CREATED,
       UPDATED: new Date(),
-    });
+    })
   }
 
   /**
@@ -49,6 +50,6 @@ export class Igreja {
    * @returns {Igreja} Uma nova instância de Igreja.
    */
   static create(options) {
-    return new Igreja(options);
+    return new Igreja(options)
   }
 }

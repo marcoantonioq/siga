@@ -1,44 +1,45 @@
-import { Igreja } from "../core/Igreja.js";
-import { HTTPClient } from "../infra/http/index.js";
+import * as cheerio from 'cheerio'
+import { Igreja } from '../core/Igreja.js'
+import { HTTPClient } from '../infra/http/index.js'
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
  */
 export class IgrejasRepo {
-  #client;
+  #client
   /**
    * Construtor da classe FluxoRepo.
    * @param {Igreja[]} [igreja=[]] - Um array opcional de objetos Fluxo
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(igreja = [], client) {
-    this.igrejas = igreja;
-    this.#client = client;
+    this.igrejas = igreja
+    this.#client = client
   }
 
   async getIgrejas() {
-    const empresas = [];
-    const igrejas = [];
+    const empresas = []
+    const igrejas = []
     try {
-      const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
-      let optgroupMatch;
+      const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g
+      let optgroupMatch
 
-      const data = await this.#client.login(this.cookie);
+      const data = await this.#client.login(this.cookie)
 
       while ((optgroupMatch = optgroupRegex.exec(data)) !== null) {
-        const label = optgroupMatch[1];
-        const options = optgroupMatch[2];
+        const label = optgroupMatch[1]
+        const options = optgroupMatch[2]
         const optionRegex =
-          /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs;
-        let optionMatch;
+          /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs
+        let optionMatch
 
         while ((optionMatch = optionRegex.exec(options)) !== null) {
           empresas.push({
             regional: label,
-            type: "EMPRESA",
+            type: 'EMPRESA',
             id: Number(optionMatch[1]),
             description: optionMatch[2].trim(),
-          });
+          })
         }
       }
 
@@ -46,45 +47,87 @@ export class IgrejasRepo {
         empresas.map(async (e) => {
           try {
             return this.#client.fetch({
-              url: "https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarParaAcesso",
-              method: "post",
-              data: JSON.stringify({ codigoEmpresa: e.id }),
+              url: 'https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarParaAcesso',
+              method: 'post',
+              data: { codigoEmpresa: e.id },
               headers: {
-                "Content-Type": "application/json; charset=UTF-8",
+                'Content-Type': 'application/json; charset=UTF-8',
               },
-            });
+            })
           } catch (error) {
-            console.log("Erro:: ", error);
+            console.log('Erro:: ', error)
           }
         })
-      );
+      )
       results.map(({ data }) => {
-        const values = JSON.parse(data);
+        const values = JSON.parse(data)
         values.d.map((e) => {
-          const emp = empresas.find((emp) => emp.id === e["CodigoEmpresa"]);
+          const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa'])
           const igreja = Igreja.create({
-            IGREJA_COD: e["Codigo"],
-            IGREJA: e["Nome"],
-            IGREJA_DESC: e["NomeExibicao"],
-            IGREJA_TIPO: e["CodigoTipoEstabelecimento"],
+            IGREJA_COD: e['Codigo'],
+            IGREJA: e['Nome'],
+            IGREJA_DESC: e['NomeExibicao'],
+            IGREJA_TIPO: e['CodigoTipoEstabelecimento'],
             IGREJA_ADM: emp.description,
             REGIONAL: emp.regional,
-            UNIDADE_COD: e["CodigoEmpresa"],
+            UNIDADE_COD: e['CodigoEmpresa'],
             MEMBROS: 0,
-          });
-          igrejas.push(igreja);
-        });
-      });
+          })
+          igrejas.push(igreja)
+        })
+      })
     } catch (error) {
-      console.error("!!! Erro ao obter igrejas: ", error);
+      console.error('!!! Erro ao obter igrejas: ', error)
     }
-    return igrejas;
+    return igrejas
   }
 
   async getRegionais() {
     const result = await this.#client.fetch({
-      url: "https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarRegionaisEAdministracoes",
-    });
-    console.log("Result::", JSON.stringify(JSON.parse(result.data), null, 2));
+      url: 'https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarRegionaisEAdministracoes',
+    })
+    console.log('Result::', JSON.stringify(JSON.parse(result.data), null, 2))
+  }
+
+  async alterarIgreja(unidade, estabelecimento) {
+    const { data: htmlAlterar } = await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx',
+    })
+    const $ = cheerio.load(htmlAlterar)
+    const usuario = $('input[id^="f_usuario_"]').val()
+
+    const { data: competencias } = await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetencias',
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      data: { codigoEmpresa: unidade },
+    })
+    const competencia = JSON.parse(competencias)?.d[0]?.Codigo
+
+    await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx',
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: {
+        gravar: 'S',
+        f_usuario: usuario,
+        f_empresa: unidade,
+        f_estabelecimento: estabelecimento,
+        f_competencia: competencia,
+        __jqSubmit__: 'S',
+      },
+    })
+
+    await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/SIS/SIS99908.aspx?f_inicio=S',
+    })
+    await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/page.aspx?loadPage=/SIS/SIS99908.aspx?f_inicio=S',
+    })
+    console.log('Igreja alterada ', unidade, estabelecimento)
   }
 }
