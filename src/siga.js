@@ -48,40 +48,43 @@ export async function searchDataAll(
   msg.username = client.username;
 
   for (const adm of adms) {
-    console.log('ADM: ', adm);
+    console.log('Coletando ' + adm.IGREJA_DESC);
 
-    const eventosAsync = app.eventos.getEventosSecretaria(
+    const eventos = await app.eventos.getEventosSecretaria(
       date1,
       date2,
       adm.UNIDADE_COD
     );
+    msg.tables.eventos.push(...eventos);
 
-    const fluxosAsync = Promise.all([
-      app.igrejas.alterarIgreja(adm.UNIDADE_COD, adm.IGREJA_COD),
-      app.fluxos.getDespesas(date1, date2, adm.IGREJA_COD),
-      app.fluxos.getDepositos(date1, date2, adm.IGREJA_COD),
-      app.fluxos.getColetas(date1, date2),
-    ]);
+    await app.igrejas.alterarIgreja(adm.UNIDADE_COD, adm.IGREJA_COD);
 
-    (await eventosAsync).map((e) => msg.tables.eventos.push(e));
+    const despesas = await app.fluxos.getDespesas(date1, date2, adm.IGREJA_COD);
+    const depositos = await app.fluxos.getDepositos(
+      date1,
+      date2,
+      adm.IGREJA_COD
+    );
+    const coletas = await app.fluxos.getColetas(date1, date2);
 
-    msg.tables.fluxos = (await fluxosAsync)
-      .flat()
-      .filter((e) => e)
-      .map((f) => {
-        try {
-          const igreja = msg.tables.igrejas.find(
-            (ig) => ig?.IGREJA_DESC === f?.IGREJA_DESC
-          );
-          f.REGIONAL = igreja?.REGIONAL;
-          f.IGREJA_ADM = igreja?.IGREJA_DESC;
-          f.IGREJA_COD = igreja?.IGREJA_COD;
-          f.IGREJA_TIPO = igreja?.IGREJA_TIPO;
-        } catch (error) {
-          console.error('Erro ao buscar dados de fluxo: ', error);
-        }
-        return f;
-      });
+    const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
+      const igrejaData = msg.tables.igrejas.find(
+        (ig) => ig?.IGREJA_DESC === f?.IGREJA_DESC
+      );
+      if (igrejaData) {
+        Object.assign(f, {
+          REGIONAL: igrejaData.REGIONAL,
+          IGREJA_ADM: igrejaData.IGREJA_DESC,
+          IGREJA_COD: igrejaData.IGREJA_COD,
+          IGREJA_TIPO: igrejaData.IGREJA_TIPO,
+        });
+      }
+      return f;
+    });
+
+    if (fluxos) {
+      msg.tables.fluxos.push(...fluxos);
+    }
   }
 
   return msg;

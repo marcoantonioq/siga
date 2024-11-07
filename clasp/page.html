@@ -124,7 +124,7 @@
         <button @click="loadData" :disabled="loading">Carregar</button>
         <div class="loader" v-show="loading"></div>
         <div class="loading-text" v-if="loading">{{ loadingText }}</div>
-        <div class="error" v-if="errorMessage">{{ errorMessage }}</div>
+        <div class="error" v-if="errorMessage" v-html="errorMessage"></div>
       </div>
     </div>
 
@@ -217,7 +217,7 @@
               resolve(data);
             } else {
               errorMessage.value = data.errors
-                ? data.errors.join('</br>\n')
+                ? data.errors.join('<br>\n')
                 : '';
               reject(new Error(errorMessage.value));
             }

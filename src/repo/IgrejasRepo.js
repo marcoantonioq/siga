@@ -120,7 +120,5 @@ export class IgrejasRepo {
         __jqSubmit__: 'S',
       },
     });
-
-    console.log('Igreja alterada ', unidade, estabelecimento);
   }
 }
