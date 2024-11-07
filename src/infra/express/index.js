@@ -23,7 +23,7 @@ app.post('/siga', async (req, res) => {
       Math.random().toString(36).slice(2);
     if (!userCookie) throw new Error('Usuário cookie inválido!');
 
-    cacheKey = `siga.${userCookie}.${date1}.${date2}`;
+    cacheKey = `siga.${userCookie}`;
     console.log('cache id:', cacheKey);
 
     const cachedEntry = processingClients[cacheKey];
@@ -46,10 +46,10 @@ app.post('/siga', async (req, res) => {
     const msg = await requestPromise;
     msg.success = true;
 
-    // Define um timeout de 30s para limpar o cache
+    // Define um timeout de 10s para limpar o cache
     setTimeout(() => {
       delete processingClients[cacheKey];
-    }, 30000);
+    }, 10000);
 
     res.json(msg);
   } catch (error) {
