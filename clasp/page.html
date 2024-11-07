@@ -4,7 +4,7 @@
     <!-- 
 /**
  * Projeto em:
- * https://github.com/marcoantonioq/siga-puppeteer
+ * https://github.com/marcoantonioq/siga
  */
   -->
     <base target="_top" />
@@ -36,8 +36,8 @@
         font-weight: bold;
         color: #333;
       }
-      input[type="date"],
-      input[type="text"] {
+      input[type='date'],
+      input[type='text'] {
         width: 100%;
         padding: 10px;
         border: 1px solid #ccc;
@@ -45,8 +45,8 @@
         box-sizing: border-box;
         transition: border-color 0.3s;
       }
-      input[type="date"]:focus,
-      input[type="text"]:focus {
+      input[type='date']:focus,
+      input[type='text']:focus {
         border-color: #3498db;
         outline: none;
       }
@@ -134,36 +134,36 @@
       createApp({
         setup() {
           const loading = ref(false);
-          const loadingText = ref("");
-          const errorMessage = ref("");
+          const loadingText = ref('');
+          const errorMessage = ref('');
           const attemptCount = ref(0);
           const maxAttempts = 5;
 
           const data = ref({
-            username: ".",
-            date1: "",
-            date2: "",
-            filter: "",
-            cookies: "",
+            username: '.',
+            date1: '',
+            date2: '',
+            filter: '',
+            cookies: '',
           });
 
           const loadFromLocalStorage = () => {
             const storedData =
-              JSON.parse(localStorage.getItem("siga.data")) || {};
+              JSON.parse(localStorage.getItem('siga.data')) || {};
             data.value = { ...data.value, ...storedData };
           };
 
           const saveDataToLocalStorage = () => {
-            localStorage.setItem("siga.data", JSON.stringify(data.value));
+            localStorage.setItem('siga.data', JSON.stringify(data.value));
           };
 
           const validateInputs = () => {
             if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
               errorMessage.value =
-                "Por favor, preencha todos os campos obrigatórios.";
+                'Por favor, preencha todos os campos obrigatórios.';
               return false;
             }
-            errorMessage.value = "";
+            errorMessage.value = '';
             return true;
           };
 
@@ -174,7 +174,7 @@
             if (!validateInputs()) return;
 
             loading.value = true;
-            loadingText.value = "Carregando... Por favor, aguarde.";
+            loadingText.value = 'Carregando... Por favor, aguarde.';
             saveDataToLocalStorage();
             attemptCount.value = 0;
 
@@ -188,11 +188,11 @@
                 console.log(loadingText.value);
               } catch (error) {
                 await sleep(5 * 60 * 1000);
-                console.log("Erro loadData: ", error);
+                console.log('Erro loadData: ', error);
               }
             }
             errorMessage.value =
-              "Erro ao carregar dados após várias tentativas.";
+              'Erro ao carregar dados após várias tentativas.';
             resetLoading();
           };
 
@@ -217,21 +217,21 @@
               resolve(data);
             } else {
               errorMessage.value = data.errors
-                ? data.errors.join("</br>\n")
-                : "";
+                ? data.errors.join('</br>\n')
+                : '';
               reject(new Error(errorMessage.value));
             }
           };
 
           const handleError = (error, resolve, reject) => {
-            console.log("Error::: ", error);
+            console.log('Error::: ', error);
             if (
-              ["autorização", "permissão"].some((t) =>
+              ['autorização', 'permissão'].some((t) =>
                 String(error).includes(t)
               )
             ) {
               errorMessage.value =
-                "Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.";
+                'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
             } else {
               errorMessage.value = error;
             }
@@ -242,14 +242,14 @@
 
           const resetLoading = () => {
             loading.value = false;
-            loadingText.value = "";
+            loadingText.value = '';
           };
 
           loadFromLocalStorage();
 
           return { loading, loadingText, loadData, data, errorMessage };
         },
-      }).mount("#app");
+      }).mount('#app');
     </script>
   </body>
 </html>

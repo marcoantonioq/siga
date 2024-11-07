@@ -1,20 +1,20 @@
 /**
  * Projeto em:
- * https://github.com/marcoantonioq/siga-puppeteer
+ * https://github.com/marcoantonioq/siga
  */
-const API_URL = "https://node.goias.ifg.edu.br/api/siga";
+const API_URL = 'https://node.goias.ifg.edu.br/api/siga';
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu("CCB")
-    .addItem("📊 SIGA", "showPage")
+    .createMenu('CCB')
+    .addItem('📊 SIGA', 'showPage')
     .addToUi();
 }
 
-function baixarSiga(payload = { username: "." }) {
+function baixarSiga(payload = { username: '.' }) {
   const options = {
-    method: "post",
-    contentType: "application/json",
+    method: 'post',
+    contentType: 'application/json',
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
     timeout: 250000,
@@ -34,10 +34,13 @@ function baixarSiga(payload = { username: "." }) {
     if (parsedResponse.success && parsedResponse.tables?.igrejas?.length) {
       criarTabelasNoGoogleSheets(parsedResponse);
     } else {
-      msg.errors.push("Dados inválidos ou sem igrejas na resposta.");
+      msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
     }
 
-    console.log("Dados retornados: ", JSON.stringify(parsedResponse, null, 2));
+    console.log(
+      'Dados retornados: ',
+      JSON.stringify(parsedResponse.tables.eventos, null, 2)
+    );
     return { ...msg, ...parsedResponse };
   } catch (error) {
     handleFetchError(error, msg);
@@ -65,7 +68,7 @@ function criarTabelasNoGoogleSheets(msg) {
       const headers = Object.keys(data[0]);
       const rows = data.map((row) =>
         headers.map((header) =>
-          ["DATA", "UPDATED", "CREATED"].includes(header) && row[header]
+          ['DATA', 'UPDATED', 'CREATED'].includes(header) && row[header]
             ? new Date(row[header])
             : row[header]
         )
@@ -74,10 +77,10 @@ function criarTabelasNoGoogleSheets(msg) {
       sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
 
       headers.forEach((header, i) => {
-        if (["DATA", "UPDATED", "CREATED"].includes(header)) {
+        if (['DATA', 'UPDATED', 'CREATED'].includes(header)) {
           sheet
             .getRange(1, i + 1, rows.length - 1)
-            .setNumberFormat("dd/MM/yyyy HH:mm");
+            .setNumberFormat('dd/MM/yyyy HH:mm');
         }
       });
     }
@@ -85,9 +88,9 @@ function criarTabelasNoGoogleSheets(msg) {
 }
 
 function showPage() {
-  const html = HtmlService.createHtmlOutputFromFile("page")
+  const html = HtmlService.createHtmlOutputFromFile('page')
     .setWidth(400)
     .setHeight(600);
 
-  SpreadsheetApp.getUi().showModalDialog(html, "Carregar Dados");
+  SpreadsheetApp.getUi().showModalDialog(html, 'Carregar Dados');
 }

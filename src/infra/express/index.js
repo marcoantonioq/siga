@@ -1,8 +1,6 @@
 import express from 'express';
 import { searchDataAll } from '../../siga.js';
 
-const CACHE_DURATION = 30 * 60 * 1000;
-
 export const app = express();
 const processingClients = {};
 
@@ -23,45 +21,39 @@ app.post('/siga', async (req, res) => {
     userCookie =
       cookies.match(/(;| )(user)=([^;]*)/i)?.[3] ||
       Math.random().toString(36).slice(2);
-
     if (!userCookie) throw new Error('Usuário cookie inválido!');
 
-    cacheKey = userCookie ? `siga.${userCookie}.${date1}.${date2}` : null;
-
-    console.log('cache id: ', cacheKey);
-
-    if (!cacheKey) {
-      return res
-        .status(400)
-        .json({ error: 'Cookie de usuário não encontrado.' });
-    }
+    cacheKey = `siga.${userCookie}.${date1}.${date2}`;
+    console.log('cache id:', cacheKey);
 
     const cachedEntry = processingClients[cacheKey];
 
     if (cachedEntry) {
-      if (Date.now() < cachedEntry.expiration) {
-        return res.json(await cachedEntry.promise);
-      } else {
-        delete processingClients[cacheKey];
-      }
+      // Se o cache ainda for válido, retorna o resultado em cache
+      return res.json(await cachedEntry.promise);
     }
 
     const requestPromise = (async () => {
       const result = await searchDataAll(date1, date2, filter, cookies);
-      delete processingClients[cacheKey];
       return result;
     })();
 
+    // Armazena a promessa e configura o tempo de expiração
     processingClients[cacheKey] = {
       promise: requestPromise,
-      expiration: Date.now() + CACHE_DURATION,
     };
 
     const msg = await requestPromise;
     msg.success = true;
+
+    // Define um timeout de 30s para limpar o cache
+    setTimeout(() => {
+      delete processingClients[cacheKey];
+    }, 30000);
+
     res.json(msg);
   } catch (error) {
-    console.log('Erro ao processar: ', error);
+    console.log('Erro ao processar:', error);
     if (processingClients[cacheKey]) {
       delete processingClients[cacheKey];
     }
