@@ -20,66 +20,63 @@ export class IgrejasRepo {
   async getIgrejas() {
     const empresas = [];
     const igrejas = [];
-    try {
-      const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
-      let optgroupMatch;
+    const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
+    let optgroupMatch;
 
-      const data = await this.#client.login(this.cookie);
+    const data = await this.#client.login(this.cookie);
 
-      while ((optgroupMatch = optgroupRegex.exec(data)) !== null) {
-        const label = optgroupMatch[1];
-        const options = optgroupMatch[2];
-        const optionRegex =
-          /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs;
-        let optionMatch;
+    while ((optgroupMatch = optgroupRegex.exec(data)) !== null) {
+      const label = optgroupMatch[1];
+      const options = optgroupMatch[2];
+      const optionRegex =
+        /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs;
+      let optionMatch;
 
-        while ((optionMatch = optionRegex.exec(options)) !== null) {
-          empresas.push({
-            regional: label,
-            type: 'EMPRESA',
-            id: Number(optionMatch[1]),
-            description: optionMatch[2].trim(),
-          });
-        }
-      }
-
-      const results = await Promise.all(
-        empresas.map(async (e) => {
-          try {
-            return this.#client.fetch({
-              url: 'https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarParaAcesso',
-              method: 'post',
-              data: { codigoEmpresa: e.id },
-              headers: {
-                'Content-Type': 'application/json; charset=UTF-8',
-              },
-            });
-          } catch (error) {
-            console.log('Erro:: ', error);
-          }
-        })
-      );
-      results.map(({ data }) => {
-        const values = JSON.parse(data);
-        values.d.map((e) => {
-          const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa']);
-          igrejas.push(
-            Igreja.create({
-              IGREJA_COD: e['Codigo'],
-              IGREJA: e['Nome'],
-              IGREJA_DESC: e['NomeExibicao'],
-              IGREJA_TIPO: e['CodigoTipoEstabelecimento'],
-              IGREJA_ADM: emp.description,
-              REGIONAL: emp.regional,
-              UNIDADE_COD: e['CodigoEmpresa'],
-              MEMBROS: 0,
-            })
-          );
+      while ((optionMatch = optionRegex.exec(options)) !== null) {
+        empresas.push({
+          regional: label,
+          type: 'EMPRESA',
+          id: Number(optionMatch[1]),
+          description: optionMatch[2].trim(),
         });
-      });
-    } catch (error) {
-      console.error('!!! Erro ao obter igrejas: ', error);
+      }
     }
+
+    const results = await Promise.all(
+      empresas.map(async (e) => {
+        try {
+          return this.#client.fetch({
+            url: 'https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarParaAcesso',
+            method: 'post',
+            data: { codigoEmpresa: e.id },
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+          });
+        } catch (error) {
+          console.log('Erro:: ', error);
+        }
+      })
+    );
+    results.map(({ data }) => {
+      const values = JSON.parse(data);
+      values.d.map((e) => {
+        const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa']);
+        igrejas.push(
+          Igreja.create({
+            IGREJA_COD: e['Codigo'],
+            IGREJA: e['Nome'],
+            IGREJA_DESC: e['NomeExibicao'],
+            IGREJA_TIPO: e['CodigoTipoEstabelecimento'],
+            IGREJA_ADM: emp.description,
+            REGIONAL: emp.regional,
+            UNIDADE_COD: e['CodigoEmpresa'],
+            MEMBROS: 0,
+          })
+        );
+      });
+    });
+
     return igrejas;
   }
 

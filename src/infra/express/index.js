@@ -1,4 +1,5 @@
 import express from 'express';
+import { searchDataAll } from '../../siga.js';
 
 const CACHE_DURATION = 30 * 60 * 1000;
 
@@ -8,25 +9,24 @@ const processingClients = {};
 app.use(express.json({ limit: '1gb' }));
 
 app.post('/siga', async (req, res) => {
-  const { date1, date2, filter, cookies, username } = req.body;
+  const { date1, date2, filter, cookies } = req.body;
+  if (!(date1 && date2 && cookies)) {
+    return res
+      .status(400)
+      .json({ error: 'Configurações ausentes no corpo da requisição.' });
+  }
+
   let userCookie = '';
   let cacheKey = '';
-  const msg = {
-    settings: { date1, date2, filter, cookies, betweenDates: [] },
-    tables: { igrejas: [], fluxos: [], eventos: [], empresas: [] },
-    success: false,
-    username,
-    errors: [],
-  };
 
   try {
     userCookie =
       cookies.match(/(;| )(user)=([^;]*)/i)?.[3] ||
       Math.random().toString(36).slice(2);
+
     if (!userCookie) throw new Error('Usuário cookie inválido!');
-    cacheKey = userCookie
-      ? `siga.${userCookie}.${date1}.${date2}.${filter}`
-      : null;
+
+    cacheKey = userCookie ? `siga.${userCookie}.${date1}.${date2}` : null;
 
     console.log('cache id: ', cacheKey);
 
@@ -35,20 +35,6 @@ app.post('/siga', async (req, res) => {
         .status(400)
         .json({ error: 'Cookie de usuário não encontrado.' });
     }
-
-    if (!(date1 && date2 && cookies && username)) {
-      return res
-        .status(400)
-        .json({ error: 'Configurações ausentes no corpo da requisição.' });
-    }
-
-    console.log('Buscar informações: ', {
-      username,
-      date1,
-      date2,
-      filter,
-      cookies,
-    });
 
     const cachedEntry = processingClients[cacheKey];
 
@@ -61,7 +47,8 @@ app.post('/siga', async (req, res) => {
     }
 
     const requestPromise = (async () => {
-      const result = await searchSiga(msg);
+      const result = await searchDataAll(date1, date2, filter, cookies);
+      delete processingClients[cacheKey];
       return result;
     })();
 
@@ -70,14 +57,14 @@ app.post('/siga', async (req, res) => {
       expiration: Date.now() + CACHE_DURATION,
     };
 
-    await requestPromise;
+    const msg = await requestPromise;
     msg.success = true;
+    res.json(msg);
   } catch (error) {
-    msg.errors.push(error.message);
     console.log('Erro ao processar: ', error);
     if (processingClients[cacheKey]) {
       delete processingClients[cacheKey];
     }
+    res.status(400).json({ msg: error.message });
   }
-  res.json(msg);
 });
