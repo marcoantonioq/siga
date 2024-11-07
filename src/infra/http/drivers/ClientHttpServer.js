@@ -1,5 +1,7 @@
 import { Request } from '../entity/Request.js'
 import { Response } from '../entity/Response.js'
+import fetch from 'node-fetch'
+import FormData from 'form-data'
 
 export class ClientHttpServer {
   #cookie
@@ -14,11 +16,6 @@ export class ClientHttpServer {
     const result = Response.create()
     try {
       if (!request.headers) request.headers = {}
-      request.headers.Cookie = this.#cookie
-
-      if (this.#__antixsrftoken) {
-        request.headers.__antixsrftoken = this.#__antixsrftoken
-      }
 
       if (
         request?.headers?.['Content-Type']?.includes(
@@ -39,21 +36,25 @@ export class ClientHttpServer {
       } else if (
         request?.headers?.['Content-Type']?.includes('multipart/form-data')
       ) {
-        const boundary =
-          '----WebKitFormBoundary' + Math.random().toString(36).substring(2)
-        let payload = ''
+        const formData = new FormData()
         for (const [key, value] of Object.entries(request.data)) {
-          payload += `--${boundary}\n`
-          payload += `Content-Disposition: form-data; name="${key}"\n\n`
-          payload += `${value}\n`
+          formData.append(key, value)
         }
-        payload += `--${boundary}--\n`
-        request.data = payload
+        request.headers = {
+          ...formData.getHeaders(),
+        }
+        request.data = formData
       }
 
-      request.body = request.data
-
-      const res = await fetch(request.url, request)
+      request.headers.Cookie = this.#cookie
+      if (this.#__antixsrftoken) {
+        request.headers.__antixsrftoken = this.#__antixsrftoken
+      }
+      const res = await fetch(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: request.data,
+      })
 
       result.code = res.status
       result.type = res.headers.get('content-type') || ''

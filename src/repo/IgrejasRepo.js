@@ -1,37 +1,39 @@
-import * as cheerio from 'cheerio'
-import { Igreja } from '../core/Igreja.js'
-import { HTTPClient } from '../infra/http/index.js'
+import * as cheerio from 'cheerio';
+import { Igreja } from '../core/Igreja.js';
+import { HTTPClient } from '../infra/http/index.js';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
  */
 export class IgrejasRepo {
-  #client
+  #client;
   /**
    * Construtor da classe FluxoRepo.
    * @param {Igreja[]} [igreja=[]] - Um array opcional de objetos Fluxo
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(igreja = [], client) {
-    this.igrejas = igreja
-    this.#client = client
+    this.igrejas = igreja;
+    this.#client = client;
   }
 
   async getIgrejas() {
-    const empresas = []
-    const igrejas = []
+    const empresas = [];
+    const igrejas = [];
     try {
-      const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g
-      let optgroupMatch
+      const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
+      let optgroupMatch;
 
-      const data = await this.#client.login(this.cookie)
+      const data = await this.#client.login(this.cookie);
 
       while ((optgroupMatch = optgroupRegex.exec(data)) !== null) {
-        const label = optgroupMatch[1]
-        const options = optgroupMatch[2]
+        const label = optgroupMatch[1];
+        const options = optgroupMatch[2];
         const optionRegex =
-          /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs
-        let optionMatch
+          /<option value="(\d+)"[^>]*>\s*([^<]+)\s*<\/option>/gs;
+        let optionMatch;
 
         while ((optionMatch = optionRegex.exec(options)) !== null) {
           empresas.push({
@@ -39,7 +41,7 @@ export class IgrejasRepo {
             type: 'EMPRESA',
             id: Number(optionMatch[1]),
             description: optionMatch[2].trim(),
-          })
+          });
         }
       }
 
@@ -53,16 +55,16 @@ export class IgrejasRepo {
               headers: {
                 'Content-Type': 'application/json; charset=UTF-8',
               },
-            })
+            });
           } catch (error) {
-            console.log('Erro:: ', error)
+            console.log('Erro:: ', error);
           }
         })
-      )
+      );
       results.map(({ data }) => {
-        const values = JSON.parse(data)
+        const values = JSON.parse(data);
         values.d.map((e) => {
-          const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa'])
+          const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa']);
           const igreja = Igreja.create({
             IGREJA_COD: e['Codigo'],
             IGREJA: e['Nome'],
@@ -72,29 +74,29 @@ export class IgrejasRepo {
             REGIONAL: emp.regional,
             UNIDADE_COD: e['CodigoEmpresa'],
             MEMBROS: 0,
-          })
-          igrejas.push(igreja)
-        })
-      })
+          });
+          igrejas.push(igreja);
+        });
+      });
     } catch (error) {
-      console.error('!!! Erro ao obter igrejas: ', error)
+      console.error('!!! Erro ao obter igrejas: ', error);
     }
-    return igrejas
+    return igrejas;
   }
 
   async getRegionais() {
     const result = await this.#client.fetch({
       url: 'https://siga.congregacao.org.br/REL/EstabelecimentoWS.asmx/SelecionarRegionaisEAdministracoes',
-    })
-    console.log('Result::', JSON.stringify(JSON.parse(result.data), null, 2))
+    });
+    console.log('Result::', JSON.stringify(JSON.parse(result.data), null, 2));
   }
 
   async alterarIgreja(unidade, estabelecimento) {
     const { data: htmlAlterar } = await this.#client.fetch({
       url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx',
-    })
-    const $ = cheerio.load(htmlAlterar)
-    const usuario = $('input[id^="f_usuario_"]').val()
+    });
+    const $ = cheerio.load(htmlAlterar);
+    const usuario = $('input[id^="f_usuario_"]').val();
 
     const { data: competencias } = await this.#client.fetch({
       url: 'https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetencias',
@@ -103,31 +105,26 @@ export class IgrejasRepo {
         'Content-Type': 'application/json; charset=UTF-8',
       },
       data: { codigoEmpresa: unidade },
-    })
-    const competencia = JSON.parse(competencias)?.d[0]?.Codigo
+    });
+
+    const competencia = JSON.parse(competencias)?.d[0]?.Codigo;
 
     await this.#client.fetch({
       url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx',
       method: 'post',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
       },
       data: {
         gravar: 'S',
         f_usuario: usuario,
-        f_empresa: unidade,
-        f_estabelecimento: estabelecimento,
+        f_empresa: String(unidade),
+        f_estabelecimento: String(estabelecimento),
         f_competencia: competencia,
         __jqSubmit__: 'S',
       },
-    })
+    });
 
-    await this.#client.fetch({
-      url: 'https://siga.congregacao.org.br/SIS/SIS99908.aspx?f_inicio=S',
-    })
-    await this.#client.fetch({
-      url: 'https://siga.congregacao.org.br/page.aspx?loadPage=/SIS/SIS99908.aspx?f_inicio=S',
-    })
-    console.log('Igreja alterada ', unidade, estabelecimento)
+    console.log('Igreja alterada ', unidade, estabelecimento);
   }
 }
