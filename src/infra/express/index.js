@@ -46,10 +46,10 @@ app.post('/siga', async (req, res) => {
     const msg = await requestPromise;
     msg.success = true;
 
-    // Define um timeout de 10s para limpar o cache
+    // Define um timeout de 30s para limpar o cache
     setTimeout(() => {
       delete processingClients[cacheKey];
-    }, 10000);
+    }, 30000);
 
     res.json(msg);
   } catch (error) {

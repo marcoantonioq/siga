@@ -17,7 +17,7 @@ function baixarSiga(payload = { username: '.' }) {
     contentType: 'application/json',
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
-    timeout: 250000,
+    timeout: 600000,
   };
 
   const msg = { success: false, errors: [] };
