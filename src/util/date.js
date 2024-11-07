@@ -3,31 +3,26 @@ export function betweenDates(dataInicial, dataFinal) {
   const start = new Date(dataInicial);
   const end = new Date(dataFinal);
 
-  let yyyy = start.getUTCFullYear();
-  let mm = start.getUTCMonth();
-
-  let data = new Date(Date.UTC(yyyy, mm, 1));
+  // Começa com o primeiro dia do mês da data inicial
+  let data = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
 
   while (data <= end) {
-    const primeiroDia = new Date(
-      Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), 1)
-    );
+    const primeiroDia = new Date(data); // Primeiro dia do mês atual
     const ultimoDia = new Date(
       Date.UTC(data.getUTCFullYear(), data.getUTCMonth() + 1, 0)
-    );
+    ); // Último dia do mês atual
+
     resultado.push({
-      start: primeiroDia.toISOString().split("T")[0],
-      end: ultimoDia.toISOString().split("T")[0],
+      start: primeiroDia.toISOString().split('T')[0],
+      end: ultimoDia.toISOString().split('T')[0],
       ref: primeiroDia
         .toISOString()
-        .replace(/(\d\d\d\d)-(\d\d)-\d\d.*/, "$2/$1"),
+        .replace(/(\d\d\d\d)-(\d\d)-\d\d.*/, '$2/$1'),
     });
-    mm += 1;
-    if (mm > 11) {
-      mm = 0;
-      yyyy += 1;
-    }
-    data = new Date(Date.UTC(yyyy, mm, 1));
+
+    // Avança para o próximo mês
+    data.setUTCMonth(data.getUTCMonth() + 1);
   }
+
   return resultado;
 }

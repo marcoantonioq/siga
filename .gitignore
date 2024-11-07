@@ -5,3 +5,4 @@ dev.html
 node_modules/
 .venv
 res
+msg.json

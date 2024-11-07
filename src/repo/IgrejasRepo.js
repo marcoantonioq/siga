@@ -1,8 +1,6 @@
 import * as cheerio from 'cheerio';
 import { Igreja } from '../core/Igreja.js';
 import { HTTPClient } from '../infra/http/index.js';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
@@ -65,17 +63,18 @@ export class IgrejasRepo {
         const values = JSON.parse(data);
         values.d.map((e) => {
           const emp = empresas.find((emp) => emp.id === e['CodigoEmpresa']);
-          const igreja = Igreja.create({
-            IGREJA_COD: e['Codigo'],
-            IGREJA: e['Nome'],
-            IGREJA_DESC: e['NomeExibicao'],
-            IGREJA_TIPO: e['CodigoTipoEstabelecimento'],
-            IGREJA_ADM: emp.description,
-            REGIONAL: emp.regional,
-            UNIDADE_COD: e['CodigoEmpresa'],
-            MEMBROS: 0,
-          });
-          igrejas.push(igreja);
+          igrejas.push(
+            Igreja.create({
+              IGREJA_COD: e['Codigo'],
+              IGREJA: e['Nome'],
+              IGREJA_DESC: e['NomeExibicao'],
+              IGREJA_TIPO: e['CodigoTipoEstabelecimento'],
+              IGREJA_ADM: emp.description,
+              REGIONAL: emp.regional,
+              UNIDADE_COD: e['CodigoEmpresa'],
+              MEMBROS: 0,
+            })
+          );
         });
       });
     } catch (error) {
