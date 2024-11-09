@@ -122,6 +122,7 @@ export async function searchDataAll(
       }
 
       return Object.assign(f, {
+        IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
         REGIONAL: adm.REGIONAL,
         IGREJA_ADM: adm.IGREJA_ADM,
       });
