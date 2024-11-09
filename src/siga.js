@@ -1,8 +1,10 @@
+import fetch from 'node-fetch';
 import { HTTPClient } from './infra/http/index.js';
 import { EventosRepo } from './repo/EventosRepo.js';
 import { FluxosRepo } from './repo/FluxosRepo.js';
 import { IgrejasRepo } from './repo/IgrejasRepo.js';
 import { betweenDates } from './util/date.js';
+import { DadosRepo } from './repo/DadosRepo.js';
 
 export async function searchDataAll(
   date1,
@@ -19,11 +21,12 @@ export async function searchDataAll(
     fluxos: new FluxosRepo([], client),
     igrejas: new IgrejasRepo([], client),
     eventos: new EventosRepo([], client),
+    dados: new DadosRepo([], client),
   };
 
   const msg = {
     settings: { date1, date2, filter, cookies, betweenDates: [] },
-    tables: { igrejas: [], fluxos: [], eventos: [] },
+    tables: { igrejas: [], fluxos: [], eventos: [], dados: [] },
     success: false,
     username,
     errors: [],
@@ -46,6 +49,25 @@ export async function searchDataAll(
   (await app.igrejas.getIgrejas()).map((e) => msg.tables.igrejas.push(e));
 
   const filterRegex = new RegExp(filter, 'i');
+
+  /**
+   * Buscar informações em secretarias
+   */
+  const secs = msg.tables.igrejas.filter(
+    (e) => e.IGREJA_TIPO === 11 && filterRegex.test(e.IGREJA_DESC)
+  );
+
+  for (const sec of secs) {
+    console.log('Coletando: ' + sec.IGREJA_DESC);
+    (await app.dados.getDados()).forEach((e) => {
+      msg.tables.dados.push(e);
+    });
+    break;
+  }
+
+  /**
+   * Buscar dados em administrações
+   */
 
   const adms = msg.tables.igrejas.filter(
     (e) => e.IGREJA_TIPO === 3 && filterRegex.test(e.IGREJA_DESC)
