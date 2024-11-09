@@ -1,6 +1,5 @@
 /**
  * @typedef {Object} DadosData
- * @property {string} grupo - Código do servo.
  * @property {number} codigoServo - Código do servo.
  * @property {number} codigoRelac - Código de relação do servo.
  * @property {string} nome - Nome do servo.

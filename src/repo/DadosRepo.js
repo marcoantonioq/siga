@@ -1,3 +1,4 @@
+import * as Cheerio from 'cheerio';
 import { Dados } from '../core/Dados.js';
 import { HTTPClient } from '../infra/http/index.js';
 
@@ -11,7 +12,8 @@ export class DadosRepo {
    * Construtor da classe DadosRepo.
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
-  constructor(client) {
+  constructor(dados = [], client) {
+    this.dados = dados;
     this.#client = client;
   }
 
@@ -28,6 +30,11 @@ export class DadosRepo {
         },
       }
     );
+    if (!resRegionais.ok) {
+      throw new Error(
+        `Erro ao busca regionais status ${resRegionais.status}!: ${resRegionais.statusText}`
+      );
+    }
     const regionais = await resRegionais.json();
     return new Map(
       regionais.map(({ codigo, nomeExibicao }) => [codigo, nomeExibicao])
@@ -36,11 +43,13 @@ export class DadosRepo {
 
   /**
    * Função para obter os dados do ministério ou administradores.
-   * @param {string} grupo - Grupo para identificar o tipo de dado (Ministério ou Administradores).
+   * @param {string} url - Url
+   * @param {string} token - Url
    * @returns {Promise<Dados[]>} Lista de objetos Dados.
    */
-  async getDados(grupo, url, token) {
-    if (!token) throw new Error('Token inválido: ', token);
+  async getDados(url) {
+    const token = this.#client.token;
+    if (!token) throw new Error('Token inválido: ', this.#client.token);
 
     let attempt = 0;
     const maxAttempts = 3;
@@ -80,7 +89,6 @@ export class DadosRepo {
 
         const { dados } = await resDados.json();
         return dados.map((e) => {
-          e.grupo = grupo;
           e.regional = regionaisMap.get(Number(e.codigoRrm)) || '';
           return Dados.create(e);
         });
@@ -100,11 +108,9 @@ export class DadosRepo {
    * Obtém os dados do ministério.
    * @returns {Promise<Dados[]>} Lista de objetos Dados do ministério.
    */
-  async getDadosMinisterio(token = '') {
-    return this.getDados(
-      'Ministério',
-      'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
-      token
+  async getDadosMinisterio() {
+    return await this.getDados(
+      'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela'
     );
   }
 
@@ -112,11 +118,27 @@ export class DadosRepo {
    * Obtém os dados dos administradores.
    * @returns {Promise<Dados[]>} Lista de objetos Dados dos administradores.
    */
-  async getDadosAdministradores(token = '') {
-    return this.getDados(
-      'Administradores',
-      'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
-      token
+  async getDadosAdministradores() {
+    return await this.getDados(
+      'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela'
     );
+  }
+
+  /**
+   * Verifica acessos
+   */
+  async access() {
+    const access = {
+      secretaria_cadastro: false,
+    };
+
+    var result = await this.#client.fetch({
+      url: 'https://siga.congregacao.org.br/SIS/SIS99908.aspx',
+    });
+
+    const $ = Cheerio.load(result.data);
+    const menu_cadastros = $('.submenu li#rotina_REL031');
+    access.secretaria_cadastro = !!menu_cadastros.text();
+    return access;
   }
 }

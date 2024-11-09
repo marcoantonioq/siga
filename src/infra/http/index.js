@@ -32,21 +32,34 @@ export class HTTPClient {
       return this.#pageLogin;
     }
 
+    /**
+     * Gerar token de acesso
+     */
     const page = await PuppeteerManager.createPage({
       cookies: this.#cookie,
       domain: 'siga.congregacao.org.br',
     });
 
-    await page.goto('https://siga.congregacao.org.br/SIS/SIS99908.aspx', {
-      waitUntil: 'networkidle0',
-    });
-
+    await page.goto(
+      'https://siga.congregacao.org.br/page.aspx?loadPage=/SIS/SIS99908.aspx',
+      {
+        waitUntil: 'networkidle0',
+      }
+    );
+    await page.goto(
+      'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
+      {
+        waitUntil: 'networkidle0',
+      }
+    );
     this.#token = await page.evaluate(() =>
       window.localStorage.getItem('ccbsiga-token-api')
     );
-
     page.close();
 
+    /**
+     * Acessar pagina inicial
+     */
     var result = await this.#server.fetch({
       url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
     });

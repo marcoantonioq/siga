@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { HTTPClient } from './infra/http/index.js';
 import { EventosRepo } from './repo/EventosRepo.js';
 import { FluxosRepo } from './repo/FluxosRepo.js';
@@ -55,18 +54,23 @@ export async function searchDataAll(
     try {
       await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
       await client.login();
-      console.log('Coletando: ' + sec.IGREJA_DESC, client.token);
-      (
-        await Promise.all([
-          app.dados.getDadosMinisterio(client.token),
-          app.dados.getDadosAdministradores(client.token),
-        ])
-      )
-        .flat()
-        .forEach((e) => {
-          msg.tables.dados.push(e);
-        });
-      break;
+      const { secretaria_cadastro } = await app.dados.access();
+      if (secretaria_cadastro) {
+        console.log('Coletando: ' + sec.IGREJA_DESC);
+        (
+          await Promise.all([
+            app.dados.getDadosMinisterio(),
+            app.dados.getDadosAdministradores(),
+          ])
+        )
+          .flat()
+          .forEach((e) => {
+            msg.tables.dados.push(e);
+          });
+        break;
+      } else {
+        console.log('Não tem acesso a cadastro secretária!');
+      }
     } catch (error) {
       console.error('Erro ao coletar dados: ', error);
     }

@@ -41,11 +41,6 @@ function baixarSiga(payload = { username: '.' }) {
         msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
       }
     }
-
-    console.log(
-      'Dados retornados: ',
-      JSON.stringify(parsedResponse.tables.eventos, null, 2)
-    );
     return { ...msg, ...parsedResponse };
   } catch (error) {
     handleFetchError(error, msg);
