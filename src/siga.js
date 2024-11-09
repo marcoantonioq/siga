@@ -115,8 +115,8 @@ export async function searchDataAll(
         );
         if (igrejaData) {
           Object.assign(f, {
-            REGIONAL: igrejaData.REGIONAL,
-            IGREJA_ADM: igrejaData.IGREJA_ADM,
+            REGIONAL: adm.REGIONAL,
+            IGREJA_ADM: adm.IGREJA_ADM,
             IGREJA_COD: igrejaData.IGREJA_COD,
             IGREJA_TIPO: igrejaData.IGREJA_TIPO,
           });
