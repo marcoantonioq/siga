@@ -115,13 +115,15 @@ export async function searchDataAll(
         );
         if (igrejaData) {
           Object.assign(f, {
-            REGIONAL: adm.REGIONAL,
-            IGREJA_ADM: adm.IGREJA_ADM,
             IGREJA_COD: igrejaData.IGREJA_COD,
             IGREJA_TIPO: igrejaData.IGREJA_TIPO,
           });
         }
       }
+      Object.assign(f, {
+        REGIONAL: adm.REGIONAL,
+        IGREJA_ADM: adm.IGREJA_ADM,
+      });
       return f;
     });
 
