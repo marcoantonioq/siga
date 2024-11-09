@@ -107,16 +107,20 @@ export async function searchDataAll(
     const coletas = await app.fluxos.getColetas(date1, date2);
 
     const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
-      const igrejaData = msg.tables.igrejas.find(
-        (ig) => ig?.IGREJA_DESC === f?.IGREJA_DESC
-      );
-      if (igrejaData) {
-        Object.assign(f, {
-          REGIONAL: igrejaData.REGIONAL,
-          IGREJA_ADM: igrejaData.IGREJA_ADM,
-          IGREJA_COD: igrejaData.IGREJA_COD,
-          IGREJA_TIPO: igrejaData.IGREJA_TIPO,
-        });
+      const match = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/);
+      if (match) {
+        const id = match[0];
+        const igrejaData = msg.tables.igrejas.find((ig) =>
+          ig.IGREJA_DESC.includes(id)
+        );
+        if (igrejaData) {
+          Object.assign(f, {
+            REGIONAL: igrejaData.REGIONAL,
+            IGREJA_ADM: igrejaData.IGREJA_ADM,
+            IGREJA_COD: igrejaData.IGREJA_COD,
+            IGREJA_TIPO: igrejaData.IGREJA_TIPO,
+          });
+        }
       }
       return f;
     });
