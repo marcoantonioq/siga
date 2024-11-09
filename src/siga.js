@@ -59,10 +59,18 @@ export async function searchDataAll(
 
   for (const sec of secs) {
     try {
-      console.log('Coletando: ' + sec.IGREJA_DESC);
-      (await app.dados.getDados()).forEach((e) => {
-        msg.tables.dados.push(e);
-      });
+      await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
+      console.log('Coletando: ' + sec.IGREJA_DESC, client.token);
+      (
+        await Promise.all([
+          app.dados.getDadosMinisterio(client.token),
+          app.dados.getDadosAdministradores(client.token),
+        ])
+      )
+        .flat()
+        .forEach((e) => {
+          msg.tables.dados.push(e);
+        });
       break;
     } catch (error) {
       console.error('Erro ao coletar dados: ', error);

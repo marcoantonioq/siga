@@ -9,12 +9,18 @@ async function start() {
     cookie,
   });
 
-  await client.login();
+  // await client.login();
+  const token = '';
 
   const dadosRepo = new DadosRepo([], client);
-  const formated = await dadosRepo.getDados();
+  const formated = (
+    await Promise.all([
+      dadosRepo.getDadosMinisterio(token),
+      dadosRepo.getDadosAdministradores(token),
+    ])
+  ).flat();
 
-  console.log(formated);
+  console.log(formated.length);
 }
 
 start();

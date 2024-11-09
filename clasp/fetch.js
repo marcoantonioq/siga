@@ -31,10 +31,15 @@ function baixarSiga(payload = { username: '.' }) {
 
     const parsedResponse = JSON.parse(response.getContentText());
 
-    if (parsedResponse.success && parsedResponse.tables?.igrejas?.length) {
+    if (parsedResponse.success && parsedResponse?.tables?.igrejas?.length) {
       criarTabelasNoGoogleSheets(parsedResponse);
     } else {
-      msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
+      console.log('Dados retornados:::: ', parsedResponse);
+      if (parsedResponse?.errors?.length) {
+        msg.errors.push(...parsedResponse.error);
+      } else {
+        msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
+      }
     }
 
     console.log(
@@ -52,6 +57,7 @@ function handleFetchError(error, msg) {
   const message = `Falha ao conectar no servidor. Reconectando... \n</br>Erro: ${
     error.message || error
   }`;
+  console.log('msg::: ', msg);
   msg.errors.push(message);
   console.error(message);
 }

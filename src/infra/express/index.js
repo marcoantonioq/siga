@@ -57,6 +57,6 @@ app.post('/siga', async (req, res) => {
     if (processingClients[cacheKey]) {
       delete processingClients[cacheKey];
     }
-    res.status(400).json({ msg: error.message });
+    res.status(200).json({ success: false, errors: [error.message] });
   }
 });
