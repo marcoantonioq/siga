@@ -63,9 +63,9 @@ function criarTabelasNoGoogleSheets(msg) {
   for (const tableName in msg.tables) {
     const data = msg.tables[tableName];
     const sheet = ss.getSheetByName(tableName) || ss.insertSheet(tableName);
-    sheet.clear();
 
     if (data.length > 0) {
+      sheet.clear();
       const headers = Object.keys(data[0]);
       const rows = data.map((row) =>
         headers.map((header) =>
