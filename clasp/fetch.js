@@ -91,7 +91,7 @@ function criarTabelasNoGoogleSheets(msg) {
 function showPage() {
   const html = HtmlService.createHtmlOutputFromFile('page')
     .setWidth(400)
-    .setHeight(600);
+    .setHeight(650);
 
   SpreadsheetApp.getUi().showModalDialog(html, 'Carregar Dados');
 }

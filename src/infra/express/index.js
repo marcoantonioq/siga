@@ -49,7 +49,7 @@ app.post('/siga', async (req, res) => {
     // Define um timeout de 60s para limpar o cache. Verificar na interface do usuário se o sleep é menor
     setTimeout(() => {
       delete processingClients[cacheKey];
-    }, 1 * 60 * 1000);
+    }, 4 * 60 * 1000);
 
     res.json(msg);
   } catch (error) {
