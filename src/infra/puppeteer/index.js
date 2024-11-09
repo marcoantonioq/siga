@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import path from 'path';
 
 const settings = {
   headless: process.env.NODE_ENV === 'production',
@@ -9,6 +10,11 @@ export const PuppeteerManager = {
   timeoutIds: new Map(),
 
   async createBrowserInstance(cookies) {
+    const userDir = path.join(
+      'user_data',
+      cookies || Math.random().toString(36).slice(2)
+    );
+
     const browser = await puppeteer.launch({
       headless: settings.headless,
       args: [
@@ -22,6 +28,7 @@ export const PuppeteerManager = {
         `--disable-gpu`,
         `--allow-insecure-localhost`,
       ],
+      userDataDir: userDir,
     });
     console.log('Navegador iniciado para:', cookies);
     this.browsers.set(cookies, browser);

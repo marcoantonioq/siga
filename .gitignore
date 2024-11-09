@@ -7,3 +7,4 @@ node_modules/
 res
 msg.json
 request/*
+user_data/*

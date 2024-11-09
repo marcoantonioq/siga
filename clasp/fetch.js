@@ -36,7 +36,7 @@ function baixarSiga(payload = { username: '.' }) {
     } else {
       console.log('Dados retornados:::: ', parsedResponse);
       if (parsedResponse?.errors?.length) {
-        msg.errors.push(...parsedResponse.error);
+        msg.errors.push(...parsedResponse.errors);
       } else {
         msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
       }
