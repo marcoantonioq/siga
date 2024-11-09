@@ -41,38 +41,59 @@ export class DadosRepo {
    */
   async getDados(grupo, url, token) {
     if (!token) throw new Error('Token inválido: ', token);
-    const regionaisMap = await this.getRegionais(token);
 
-    const resDados = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        filtro: {
-          codigoPais: null,
-          codigoEstado: null,
-          codigoCidade: null,
-          codigoRegional: null,
-          codigoAdministracao: null,
-          codigoIgreja: null,
-          codigoMinisterioCargo: null,
-          codigoSexo: null,
-          ativo: true,
-          dataApresentacao: '',
-          pesquisaRapida: '',
-        },
-        paginacao: null,
-      }),
-    });
+    let attempt = 0;
+    const maxAttempts = 3;
+    let regionaisMap, resDados;
 
-    const { dados } = await resDados.json();
-    return dados.map((e) => {
-      e.grupo = grupo;
-      e.regional = regionaisMap.get(Number(e.codigoRrm)) || '';
-      return Dados.create(e);
-    });
+    while (attempt < maxAttempts) {
+      try {
+        regionaisMap = await this.getRegionais(token);
+        if (!regionaisMap) throw new Error('Falha ao obter regionais');
+
+        resDados = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            filtro: {
+              codigoPais: null,
+              codigoEstado: null,
+              codigoCidade: null,
+              codigoRegional: null,
+              codigoAdministracao: null,
+              codigoIgreja: null,
+              codigoMinisterioCargo: null,
+              codigoSexo: null,
+              ativo: true,
+              dataApresentacao: '',
+              pesquisaRapida: '',
+            },
+            paginacao: null,
+          }),
+        });
+
+        if (!resDados.ok)
+          throw new Error(`Erro na requisição: ${resDados.statusText}`);
+
+        const { dados } = await resDados.json();
+        return dados.map((e) => {
+          e.grupo = grupo;
+          e.regional = regionaisMap.get(Number(e.codigoRrm)) || '';
+          return Dados.create(e);
+        });
+      } catch (error) {
+        attempt += 1;
+        if (attempt < maxAttempts) {
+          console.log(`Tentativa ${attempt} falhou. Tentando novamente...`);
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        } else {
+          throw error;
+        }
+      }
+    }
   }
 
   /**

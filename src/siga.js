@@ -38,13 +38,7 @@ export async function searchDataAll(
     throw new Error('Configurações ausentes no corpo da requisição.');
   }
 
-  console.log(
-    'Buscar informações: ',
-    msg.settings.cookies,
-    msg.settings.filter,
-    date1,
-    date2
-  );
+  console.log('Buscar informações: ', msg.settings);
 
   (await app.igrejas.getIgrejas()).map((e) => msg.tables.igrejas.push(e));
 
