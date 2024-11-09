@@ -60,6 +60,7 @@ export async function searchDataAll(
   for (const sec of secs) {
     try {
       await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
+      await client.login();
       console.log('Coletando: ' + sec.IGREJA_DESC, client.token);
       (
         await Promise.all([
