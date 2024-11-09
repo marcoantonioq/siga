@@ -69,7 +69,7 @@ export async function searchDataAll(
           });
         break;
       } else {
-        console.log('Não tem acesso a cadastro secretária!');
+        console.log('Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC);
       }
     } catch (error) {
       console.error('Erro ao coletar dados: ', error);
