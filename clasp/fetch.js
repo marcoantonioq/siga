@@ -49,9 +49,9 @@ function baixarSiga(payload = { username: '.' }) {
 }
 
 function handleFetchError(error, msg) {
-  const message = `Falha ao conectar no servidor. Reconectando... \n</br>Erro: ${
+  const message = `Não foi possível conectar ao servidor. Tentando reconectar... \n</br><small>${
     error.message || error
-  }`;
+  }</small>`;
   console.log('msg::: ', msg);
   msg.errors.push(message);
   console.error(message);
