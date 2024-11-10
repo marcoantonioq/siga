@@ -1,6 +1,7 @@
 import * as Cheerio from 'cheerio';
 import { Dados } from '../core/Dados.js';
 import { HTTPClient } from '../infra/http/index.js';
+import { Request } from '../infra/http/entity/Request.js';
 
 /**
  * Classe para gerenciar um repositório de objetos Dados.
@@ -10,6 +11,7 @@ export class DadosRepo {
 
   /**
    * Construtor da classe DadosRepo.
+   * @param {Dados[]} dados - Um objeto HTTPClient para realizar requisições.
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(dados = [], client) {
@@ -44,12 +46,11 @@ export class DadosRepo {
   /**
    * Função para obter os dados do ministério ou administradores.
    * @param {string} url - Url
-   * @param {string} token - Url
    * @returns {Promise<Dados[]>} Lista de objetos Dados.
    */
   async getDados(url) {
     const token = this.#client.token;
-    if (!token) throw new Error('Token inválido: ', this.#client.token);
+    if (!token) throw new Error('Token inválido: ' + this.#client.token);
 
     let attempt = 0;
     const maxAttempts = 3;

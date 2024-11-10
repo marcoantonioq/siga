@@ -19,13 +19,13 @@ export class Evento {
    * @param {EventoData} options - As opções para configurar o evento.
    */
   constructor({
-    EVENTO = "",
-    GRUPO = "",
+    EVENTO,
+    GRUPO = '',
     DATA = new Date(),
-    IGREJA = "",
-    OBSERVACOES = "",
-    STATUS = "",
-    ID = "",
+    IGREJA = '',
+    OBSERVACOES = '',
+    STATUS = '',
+    ID = '',
   }) {
     this.EVENTO = EVENTO;
     this.GRUPO = GRUPO;

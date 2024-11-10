@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { request, response } from 'express';
 import { searchDataAll } from '../../siga.js';
 
 export const app = express();
@@ -6,6 +6,7 @@ const processingClients = {};
 
 app.use(express.json({ limit: '1gb' }));
 
+// @ts-ignore
 app.post('/siga', async (req, res) => {
   const { date1, date2, filter, cookies } = req.body;
   if (!(date1 && date2 && cookies)) {

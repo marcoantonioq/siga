@@ -1,5 +1,5 @@
 /**
- * @typedef {'Saída' | 'Entrada' | 'Oferta'} FluxoTipo
+ * @typedef {'Saída' | 'Entrada' | 'Oferta' | 'Coleta' | 'Deposito'} FluxoTipo
  */
 
 /**
@@ -17,12 +17,13 @@
  * @property {string} OBSERVACOES
  * @property {string} ORIGEM
  * @property {string} REF
+ * @property {Date} CREATED
  */
 
 export class Fluxo {
   /**
    * Cria uma instância de Fluxo.
-   * @param {FluxoData} options - As opções para configurar o fluxo.
+   * @param {Partial<FluxoData>} options - As opções para configurar o fluxo.
    */
   constructor({
     FLUXO = 'Saída',
@@ -59,7 +60,7 @@ export class Fluxo {
 
   /**
    * Cria uma nova instância de Fluxo com as opções fornecidas.
-   * @param {FluxoData} options - As opções para configurar o fluxo.
+   * @param {Partial<FluxoData>} options - As opções para configurar o fluxo.
    * @returns {Fluxo} Uma nova instância de Fluxo.
    */
   static create(options) {

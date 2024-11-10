@@ -10,7 +10,7 @@ export class EventosRepo {
 
   /**
    * Construtor da classe EventosRepo.
-   * @param {Evento[]} [eventos=[]] - Um array opcional de objetos Evento.
+   * @param {Evento[]} eventos - Um array opcional de objetos Evento.
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(eventos = [], client) {
