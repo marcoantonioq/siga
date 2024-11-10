@@ -137,7 +137,7 @@
           const loadingText = ref('');
           const errorMessage = ref('');
           const attemptCount = ref(0);
-          const maxAttempts = 5;
+          const maxAttempts = 10;
 
           const data = ref({
             username: '.',
@@ -188,7 +188,7 @@
                 } de ${maxAttempts}...`;
                 console.log(loadingText.value);
                 console.log('Erro loadData: ', error);
-                await sleep(30 * 1000);
+                await sleep(2 * 60 * 1000);
               }
             }
             errorMessage.value =

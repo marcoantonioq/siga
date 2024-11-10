@@ -31,16 +31,16 @@ function baixarSiga(payload = { username: '.' }) {
 
     const parsedResponse = JSON.parse(response.getContentText());
 
-    if (parsedResponse.success && parsedResponse.tables?.igrejas?.length) {
+    if (parsedResponse.success && parsedResponse?.tables?.igrejas?.length) {
       criarTabelasNoGoogleSheets(parsedResponse);
     } else {
-      msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
+      console.log('Dados retornados:::: ', parsedResponse);
+      if (parsedResponse?.errors?.length) {
+        msg.errors.push(...parsedResponse.errors);
+      } else {
+        msg.errors.push('Dados inválidos ou sem igrejas na resposta.');
+      }
     }
-
-    console.log(
-      'Dados retornados: ',
-      JSON.stringify(parsedResponse.tables.eventos, null, 2)
-    );
     return { ...msg, ...parsedResponse };
   } catch (error) {
     handleFetchError(error, msg);
@@ -49,9 +49,10 @@ function baixarSiga(payload = { username: '.' }) {
 }
 
 function handleFetchError(error, msg) {
-  const message = `Falha ao conectar no servidor. Reconectando... \n</br>Erro: ${
+  const message = `Não foi possível conectar ao servidor. Tentando reconectar... \n</br><small>${
     error.message || error
-  }`;
+  }</small>`;
+  console.log('msg::: ', msg);
   msg.errors.push(message);
   console.error(message);
 }
@@ -62,9 +63,9 @@ function criarTabelasNoGoogleSheets(msg) {
   for (const tableName in msg.tables) {
     const data = msg.tables[tableName];
     const sheet = ss.getSheetByName(tableName) || ss.insertSheet(tableName);
-    sheet.clear();
 
     if (data.length > 0) {
+      sheet.clear();
       const headers = Object.keys(data[0]);
       const rows = data.map((row) =>
         headers.map((header) =>
@@ -90,7 +91,7 @@ function criarTabelasNoGoogleSheets(msg) {
 function showPage() {
   const html = HtmlService.createHtmlOutputFromFile('page')
     .setWidth(400)
-    .setHeight(600);
+    .setHeight(650);
 
   SpreadsheetApp.getUi().showModalDialog(html, 'Carregar Dados');
 }

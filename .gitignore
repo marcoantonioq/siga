@@ -6,3 +6,5 @@ node_modules/
 .venv
 res
 msg.json
+request/*
+user_data/*

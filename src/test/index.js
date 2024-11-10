@@ -1,10 +1,26 @@
-import { writeFileSync } from 'fs';
-import { searchDataAll } from '../siga.js';
+import fetch from 'node-fetch';
+import { HTTPClient } from '../infra/http/index.js';
+import { DadosRepo } from '../repo/DadosRepo.js';
 
-(async () => {
-  const msg = await searchDataAll('2024-10-01', '2024-11-30', 'Itaberaí', '');
+async function start() {
+  const cookie = '';
 
-  writeFileSync('msg.json', JSON.stringify(msg, null, 2));
+  const client = new HTTPClient({
+    cookie,
+  });
 
-  console.log('Finalizado: ', msg.settings);
-})();
+  // await client.login();
+  const token = '';
+
+  const dadosRepo = new DadosRepo([], client);
+  const formated = (
+    await Promise.all([
+      dadosRepo.getDadosMinisterio(token),
+      dadosRepo.getDadosAdministradores(token),
+    ])
+  ).flat();
+
+  console.log(formated.length);
+}
+
+start();

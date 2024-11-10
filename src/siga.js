@@ -3,6 +3,7 @@ import { EventosRepo } from './repo/EventosRepo.js';
 import { FluxosRepo } from './repo/FluxosRepo.js';
 import { IgrejasRepo } from './repo/IgrejasRepo.js';
 import { betweenDates } from './util/date.js';
+import { DadosRepo } from './repo/DadosRepo.js';
 
 export async function searchDataAll(
   date1,
@@ -19,11 +20,12 @@ export async function searchDataAll(
     fluxos: new FluxosRepo([], client),
     igrejas: new IgrejasRepo([], client),
     eventos: new EventosRepo([], client),
+    dados: new DadosRepo([], client),
   };
 
   const msg = {
     settings: { date1, date2, filter, cookies, betweenDates: [] },
-    tables: { igrejas: [], fluxos: [], eventos: [] },
+    tables: { igrejas: [], fluxos: [], eventos: [], dados: [] },
     success: false,
     username,
     errors: [],
@@ -35,17 +37,48 @@ export async function searchDataAll(
     throw new Error('Configurações ausentes no corpo da requisição.');
   }
 
-  console.log(
-    'Buscar informações: ',
-    msg.settings.cookies,
-    msg.settings.filter,
-    date1,
-    date2
-  );
+  console.log('Buscar informações: ', msg.settings);
 
   (await app.igrejas.getIgrejas()).map((e) => msg.tables.igrejas.push(e));
 
   const filterRegex = new RegExp(filter, 'i');
+
+  /**
+   * Buscar informações em secretarias
+   */
+  const secs = msg.tables.igrejas.filter(
+    (e) => e.IGREJA_TIPO === 11 && filterRegex.test(e.IGREJA_DESC)
+  );
+
+  for (const sec of secs) {
+    try {
+      await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
+      await client.login();
+      const { secretaria_cadastro } = await app.dados.access();
+      if (secretaria_cadastro) {
+        console.log('Coletando: ' + sec.IGREJA_DESC);
+        (
+          await Promise.all([
+            app.dados.getDadosMinisterio(),
+            app.dados.getDadosAdministradores(),
+          ])
+        )
+          .flat()
+          .forEach((e) => {
+            msg.tables.dados.push(e);
+          });
+        break;
+      } else {
+        console.log('Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC);
+      }
+    } catch (error) {
+      console.error('Erro ao coletar dados: ', error);
+    }
+  }
+
+  /**
+   * Buscar dados em administrações
+   */
 
   const adms = msg.tables.igrejas.filter(
     (e) => e.IGREJA_TIPO === 3 && filterRegex.test(e.IGREJA_DESC)
@@ -74,23 +107,28 @@ export async function searchDataAll(
     const coletas = await app.fluxos.getColetas(date1, date2);
 
     const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
+      const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
       const igrejaData = msg.tables.igrejas.find(
-        (ig) => ig?.IGREJA_DESC === f?.IGREJA_DESC
+        (ig) =>
+          (id && ig.IGREJA_DESC.includes(id)) ||
+          ig?.IGREJA_DESC === f?.IGREJA_DESC
       );
+
       if (igrejaData) {
         Object.assign(f, {
-          REGIONAL: igrejaData.REGIONAL,
-          IGREJA_ADM: igrejaData.IGREJA_DESC,
           IGREJA_COD: igrejaData.IGREJA_COD,
           IGREJA_TIPO: igrejaData.IGREJA_TIPO,
         });
       }
-      return f;
+
+      return Object.assign(f, {
+        IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
+        REGIONAL: adm.REGIONAL,
+        IGREJA_ADM: adm.IGREJA_ADM,
+      });
     });
 
-    if (fluxos) {
-      msg.tables.fluxos.push(...fluxos);
-    }
+    msg.tables.fluxos.push(...fluxos);
   }
 
   return msg;

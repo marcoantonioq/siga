@@ -2,17 +2,29 @@ import * as Cheerio from 'cheerio';
 import { ClientHttpServer } from './drivers/ClientHttpServer.js';
 import { Request } from './entity/Request.js';
 import { Response } from './entity/Response.js';
+import PuppeteerManager from '../puppeteer/index.js';
 
 export class HTTPClient {
   #server;
   #pageLogin;
   #username;
+  #token;
+  #cookie;
   constructor({ cookie }) {
     this.#server = new ClientHttpServer({ cookie });
+    this.#cookie = cookie;
   }
 
   get username() {
     return this.#username;
+  }
+
+  get token() {
+    return this.#token;
+  }
+
+  get cookie() {
+    return this.#cookie;
   }
 
   async login() {
@@ -20,6 +32,34 @@ export class HTTPClient {
       return this.#pageLogin;
     }
 
+    /**
+     * Gerar token de acesso
+     */
+    const page = await PuppeteerManager.createPage({
+      cookies: this.#cookie,
+      domain: 'siga.congregacao.org.br',
+    });
+
+    await page.goto(
+      'https://siga.congregacao.org.br/page.aspx?loadPage=/SIS/SIS99908.aspx',
+      {
+        waitUntil: 'networkidle0',
+      }
+    );
+    await page.goto(
+      'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
+      {
+        waitUntil: 'networkidle0',
+      }
+    );
+    this.#token = await page.evaluate(() =>
+      window.localStorage.getItem('ccbsiga-token-api')
+    );
+    page.close();
+
+    /**
+     * Acessar pagina inicial
+     */
     var result = await this.#server.fetch({
       url: 'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
     });
@@ -42,7 +82,7 @@ export class HTTPClient {
       )
     ) {
       throw new Error(
-        'Você não está logado! Acesse o portal administrativo para enviar o cookie de autenticação...'
+        'Você não está logado no SIGA! Acesse o portal administrativo para enviar o cookie de autenticação...'
       );
     }
 
