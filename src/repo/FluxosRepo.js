@@ -4,7 +4,6 @@ import { HTTPClient } from '../infra/http/index.js';
 import { excelDateToJSDate, sheet } from '../infra/sheet/index.js';
 import { betweenDates } from '../util/date.js';
 import { sleep } from '../util/sleep.js';
-import { Request } from '../infra/http/entity/Request.js';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Projeto em:
  * https://github.com/marcoantonioq/siga
@@ -6,7 +7,7 @@ const API_URL = 'https://node.goias.ifg.edu.br/api/siga';
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('CCB')
+    .createMenu('✍️ CCB')
     .addItem('📊 SIGA', 'showPage')
     .addToUi();
 }

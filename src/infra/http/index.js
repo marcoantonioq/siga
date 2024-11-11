@@ -82,7 +82,7 @@ export class HTTPClient {
       )
     ) {
       throw new Error(
-        'Você não está logado no SIGA! Acesse o portal administrativo para enviar o cookie de autenticação...'
+        'Você não está logado no SIGA. Acesse sua conta e insira um cookie de autenticação válido neste formulário para continuar...'
       );
     }
 

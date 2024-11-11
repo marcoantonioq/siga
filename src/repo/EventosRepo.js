@@ -1,5 +1,4 @@
 import { Evento } from '../core/Evento.js';
-import { Request } from '../infra/http/entity/Request.js';
 import { HTTPClient } from '../infra/http/index.js';
 
 /**
@@ -18,7 +17,7 @@ export class EventosRepo {
     this.#client = client;
   }
 
-  async getEventosSecretaria(startDate, endDate, codigoEmpresa) {
+  async getEventosSecretaria(startDate, _endDate, codigoEmpresa) {
     const eventos = [];
     try {
       const { code, data } = await this.#client.fetch({

@@ -21,6 +21,13 @@
  * @property {string} sexo - Sexo do servo.
  * @property {string|null} fotoUrl - URL da foto.
  * @property {string} regional - Regional do servo.
+ * @property {string} dataApresentacao - Data de apresentação do servo.
+ * @property {string|null} dataVencimentoMandato - Data de vencimento do mandato.
+ * @property {boolean} administrador - Indica se é administrador.
+ * @property {string} nomeRA - Nome da Região Administrativa (RA).
+ * @property {string} cargo - Cargo do servo.
+ * @property {number} statusMandato - Status do mandato do servo.
+ * @property {boolean} qsa - Indica se pertence ao quadro societário administrativo.
  */
 
 export class Dados {
@@ -50,6 +57,13 @@ export class Dados {
     sexo,
     fotoUrl = null,
     regional = '',
+    dataApresentacao,
+    dataVencimentoMandato = null,
+    administrador = false,
+    nomeRA,
+    cargo,
+    statusMandato = 0,
+    qsa = false,
   }) {
     this.codigoServo = codigoServo;
     this.codigoRelac = codigoRelac;
@@ -72,6 +86,15 @@ export class Dados {
     this.sexo = sexo;
     this.fotoUrl = fotoUrl;
     this.regional = regional;
+    this.dataApresentacao = new Date(dataApresentacao);
+    this.dataVencimentoMandato = dataVencimentoMandato
+      ? new Date(dataVencimentoMandato)
+      : null;
+    this.administrador = administrador;
+    this.nomeRA = nomeRA;
+    this.cargo = cargo;
+    this.statusMandato = statusMandato;
+    this.qsa = qsa;
     this.eventos = [];
   }
 

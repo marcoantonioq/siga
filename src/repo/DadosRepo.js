@@ -34,7 +34,7 @@ export class DadosRepo {
     );
     if (!resRegionais.ok) {
       throw new Error(
-        `Erro ao busca regionais status ${resRegionais.status}!: ${resRegionais.statusText}`
+        `busca regionais status ${resRegionais.status}!: ${resRegionais.statusText}`
       );
     }
     const regionais = await resRegionais.json();
