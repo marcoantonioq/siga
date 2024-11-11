@@ -9,12 +9,13 @@
  * @property {string} CATEGORIA - Categoria da igreja
  * @property {number} UNIDADE_COD - Código da unidade
  * @property {number} MEMBROS - Membros
+ * @property {Date} CREATED - Date
  */
 
 export class Igreja {
   /**
    * Cria uma instância de Igreja.
-   * @param {IgrejaData} options - As opções para configurar a igreja.
+   * @param {Partial<IgrejaData>} options - As opções para configurar a igreja.
    */
 
   constructor({
@@ -41,15 +42,15 @@ export class Igreja {
       MEMBROS,
       CREATED,
       UPDATED: new Date(),
-    })
+    });
   }
 
   /**
    * Cria uma nova instância de Igreja.
-   * @param {IgrejaData} options - As opções para configurar a igreja.
+   * @param {Partial<IgrejaData>} options - As opções para configurar a igreja.
    * @returns {Igreja} Uma nova instância de Igreja.
    */
   static create(options) {
-    return new Igreja(options)
+    return new Igreja(options);
   }
 }

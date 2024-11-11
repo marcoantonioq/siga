@@ -82,7 +82,7 @@ export class HTTPClient {
       )
     ) {
       throw new Error(
-        'Você não está logado no SIGA! Acesse o portal administrativo para enviar o cookie de autenticação...'
+        'Você não está logado no SIGA. Acesse sua conta e insira um cookie de autenticação válido neste formulário para continuar...'
       );
     }
 
@@ -103,18 +103,19 @@ export class HTTPClient {
 
   async validaPeriodo(data1, data2) {
     try {
-      const request = {
+      await this.#server.fetch({
         url: 'https://siga.congregacao.org.br/UTIL/UtilWS.asmx/ValidaPeriodo',
         method: 'post',
-        'Content-Type': 'application/json',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         data: {
           f_data1: data1.split('T')[0].split('-').reverse().join('/'),
           f_data2: data2.split('T')[0].split('-').reverse().join('/'),
           l_data1: 'Data Inicial',
           l_data2: 'Data Final',
         },
-      };
-      await this.#server.fetch(request);
+      });
       return true;
     } catch (error) {
       console.warn('Erro ao validar data: ', data1, data2, error);
@@ -124,10 +125,12 @@ export class HTTPClient {
 
   /**
    * Realiza uma ou mais requisições HTTP.
-   * @param {Request} request - Instância ou array de instâncias de Request.
+   * @param {Partial<Request>} request - Instância ou array de instâncias de Request.
    * @returns {Promise<Response>} - Array de respostas.
    */
   async fetch(request) {
-    return await this.#server.fetch(Request.create(request));
+    if (request.url) {
+      return await this.#server.fetch(Request.create(request));
+    }
   }
 }

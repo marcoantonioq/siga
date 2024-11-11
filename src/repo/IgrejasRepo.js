@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { Igreja } from '../core/Igreja.js';
 import { HTTPClient } from '../infra/http/index.js';
+import { Request } from '../infra/http/entity/Request.js';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
@@ -9,7 +10,7 @@ export class IgrejasRepo {
   #client;
   /**
    * Construtor da classe FluxoRepo.
-   * @param {Igreja[]} [igreja=[]] - Um array opcional de objetos Fluxo
+   * @param {Igreja[]} igreja - Um array opcional de objetos Fluxo
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(igreja = [], client) {
@@ -23,7 +24,7 @@ export class IgrejasRepo {
     const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;
     let optgroupMatch;
 
-    const data = await this.#client.login(this.cookie);
+    const data = await this.#client.login();
 
     while ((optgroupMatch = optgroupRegex.exec(data)) !== null) {
       const label = optgroupMatch[1];

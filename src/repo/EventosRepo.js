@@ -1,5 +1,4 @@
 import { Evento } from '../core/Evento.js';
-import { Request } from '../infra/http/entity/Request.js';
 import { HTTPClient } from '../infra/http/index.js';
 
 /**
@@ -10,7 +9,7 @@ export class EventosRepo {
 
   /**
    * Construtor da classe EventosRepo.
-   * @param {Evento[]} [eventos=[]] - Um array opcional de objetos Evento.
+   * @param {Evento[]} eventos - Um array opcional de objetos Evento.
    * @param {HTTPClient} client - Um objeto HTTPClient para realizar requisições.
    */
   constructor(eventos = [], client) {
@@ -18,7 +17,7 @@ export class EventosRepo {
     this.#client = client;
   }
 
-  async getEventosSecretaria(startDate, endDate, codigoEmpresa) {
+  async getEventosSecretaria(startDate, _endDate, codigoEmpresa) {
     const eventos = [];
     try {
       const { code, data } = await this.#client.fetch({
