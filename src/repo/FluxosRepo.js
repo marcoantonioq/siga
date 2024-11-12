@@ -4,7 +4,6 @@ import { HTTPClient } from '../infra/http/index.js';
 import { excelDateToJSDate, sheet } from '../infra/sheet/index.js';
 import { betweenDates } from '../util/date.js';
 import { sleep } from '../util/sleep.js';
-import { writeFileSync } from 'fs';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
@@ -61,8 +60,6 @@ export class FluxosRepo {
       let Localidade = '',
         setor = '',
         Ref = '';
-
-      writeFileSync('msg.json', JSON.stringify(values, null, 2));
 
       values.forEach((row) => {
         try {
