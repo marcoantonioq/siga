@@ -18,6 +18,7 @@
  * @property {string} ORIGEM
  * @property {string} REF
  * @property {Date} CREATED
+ * @property {string} SETOR
  */
 
 export class Fluxo {
@@ -40,6 +41,7 @@ export class Fluxo {
     ORIGEM = 'Siga',
     REF = '',
     CREATED = new Date(),
+    SETOR = '',
   }) {
     this.FLUXO = FLUXO;
     this.REGIONAL = REGIONAL;
@@ -56,6 +58,7 @@ export class Fluxo {
     this.REF = REF;
     this.CREATED = CREATED;
     this.UPDATED = new Date();
+    this.SETOR = SETOR;
   }
 
   /**

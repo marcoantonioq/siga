@@ -4,6 +4,7 @@ import { HTTPClient } from '../infra/http/index.js';
 import { excelDateToJSDate, sheet } from '../infra/sheet/index.js';
 import { betweenDates } from '../util/date.js';
 import { sleep } from '../util/sleep.js';
+import { writeFileSync } from 'fs';
 
 /**
  * Classe para gerenciar um repositório de objetos Fluxo.
@@ -58,7 +59,10 @@ export class FluxosRepo {
       }
       const values = await sheet.blobBytesToArray(result.blobBytes);
       let Localidade = '',
+        setor = '',
         Ref = '';
+
+      writeFileSync('msg.json', JSON.stringify(values, null, 2));
 
       values.forEach((row) => {
         try {
@@ -66,10 +70,9 @@ export class FluxosRepo {
             if (/^Mês \d\d\/\d+/.test(`${row[0]}`)) {
               const [, mm, yyyy] = row[0].match(/(\d{2})\/(\d{4})/);
               Ref = `${mm}/${yyyy}`;
-            } else if (
-              /^(BR \d+-\d+|^ADM|^PIA|^SET)/.test(`${row[0]}`) ||
-              row.length === 1
-            ) {
+            } else if (/^(SET)/.test(`${row[0]}`)) {
+              setor = row[0];
+            } else if (/^(BR \d+-\d+|ADM|PIA|DR|CP)/.test(`${row[0]}`)) {
               Localidade = row[0];
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
@@ -85,6 +88,7 @@ export class FluxosRepo {
                   OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
                   REF: Ref,
                   ORIGEM: 'SIGA',
+                  SETOR: setor,
                 })
               );
             }
@@ -135,7 +139,7 @@ export class FluxosRepo {
             f_opcao2: 'casaoracao',
             f_detalhar: 'true',
             f_exibir: 'comvalor',
-            f_agrupar: '',
+            f_agrupar: 'setor',
             f_saidapara: 'Excel',
             f_ordenacao: 'alfabetica',
             __initPage__: 'S',
@@ -169,6 +173,7 @@ export class FluxosRepo {
         const values = await sheet.blobBytesToArray(result.blobBytes);
 
         var nomeIgreja = '',
+          setor = '',
           headers = '',
           tipo = '';
 
@@ -180,7 +185,10 @@ export class FluxosRepo {
             break;
           } else if (/^Casa de Oração/.test(`${values[i][0]}`)) {
             headers = values[i];
-          } else if (/^(SET|BR|ADM)/.test(values[i][0])) {
+          } else if (/^(SET)/.test(values[i][0])) {
+            setor = values[i][0];
+            continue;
+          } else if (/^(BR|ADM)/.test(values[i][0])) {
             nomeIgreja = values[i][0];
           }
 
@@ -201,9 +209,10 @@ export class FluxosRepo {
                   CATEGORIA: tipo,
                   DATA: end,
                   VALOR: values[i][x],
-                  OBSERVACOES: headers[x],
+                  OBSERVACOES: `Tipo: ${headers[x]}`,
                   REF: ref,
                   ORIGEM: 'SIGA',
+                  SETOR: setor,
                 })
               );
             }
