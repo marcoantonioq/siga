@@ -11,6 +11,7 @@
  * @property {string} OBSERVACOES - Observações sobre o evento.
  * @property {string} STATUS - O status do evento.
  * @property {string} ID - Identificador do evento.
+ * @property {string} IGREJA_DESC - Descrição adicional da igreja.
  */
 
 export class Evento {
@@ -23,6 +24,7 @@ export class Evento {
     GRUPO = '',
     DATA = new Date(),
     IGREJA = '',
+    IGREJA_DESC = '',
     OBSERVACOES = '',
     STATUS = '',
     ID = '',
@@ -31,6 +33,7 @@ export class Evento {
     this.GRUPO = GRUPO;
     this.DATA = DATA;
     this.IGREJA = IGREJA;
+    this.IGREJA_DESC = IGREJA_DESC;
     this.OBSERVACOES = OBSERVACOES;
     this.STATUS = STATUS;
     this.ID = ID;
