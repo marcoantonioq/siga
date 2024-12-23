@@ -10,13 +10,12 @@ async function start() {
   });
 
   // await client.login();
-  const token = '';
 
   const dadosRepo = new DadosRepo([], client);
   const formated = (
     await Promise.all([
-      dadosRepo.getDadosMinisterio(token),
-      dadosRepo.getDadosAdministradores(token),
+      dadosRepo.getDadosMinisterio(),
+      dadosRepo.getDadosAdministradores(),
     ])
   ).flat();
 
