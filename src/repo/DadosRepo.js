@@ -1,6 +1,7 @@
 import * as Cheerio from 'cheerio';
 import { Dados } from '../core/Dados.js';
 import { HTTPClient } from '../infra/http/index.js';
+import { sleep } from '../util/sleep.js';
 
 /**
  * Classe para gerenciar um repositório de objetos Dados.
@@ -121,6 +122,7 @@ export class DadosRepo {
           );
         }
         const dados = await result.json();
+        await sleep(50);
         Object.assign(e, dados);
       } catch (error) {
         console.log('Erro ao obter dados adicionais para:', e, error);
