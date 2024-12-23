@@ -9,10 +9,3 @@ services:
       - "3000:3000"
     restart: unless-stopped
     user: node
-    volumes:
-      - siga-data:/app
-
-volumes:
-  siga-data:
-    driver_opts:
-      size: "1g"
