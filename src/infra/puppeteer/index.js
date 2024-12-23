@@ -10,13 +10,9 @@ export const PuppeteerManager = {
   timeoutIds: new Map(),
 
   async createBrowserInstance(cookies) {
-    const userDir = path.join(
-      'user_data',
-      cookies || Math.random().toString(36).slice(2)
-    );
-
     const browser = await puppeteer.launch({
       headless: settings.headless,
+      executablePath: '/usr/bin/chromium',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -28,7 +24,6 @@ export const PuppeteerManager = {
         `--disable-gpu`,
         `--allow-insecure-localhost`,
       ],
-      userDataDir: userDir,
     });
     console.log('Navegador iniciado para:', cookies);
     this.browsers.set(cookies, browser);
