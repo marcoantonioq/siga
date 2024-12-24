@@ -122,11 +122,16 @@ export class DadosRepo {
           );
         }
         const dados = await result.json();
-        await sleep(50);
-        Object.assign(e, dados);
+        for (const [key, value] of Object.entries(dados)) {
+          if (value !== null) {
+            e[key] = value;
+          }
+        }
       } catch (error) {
+        await sleep(100);
         console.log('Erro ao obter dados adicionais para:', e, error);
       }
+      await sleep(20);
     }
     return data;
   }
