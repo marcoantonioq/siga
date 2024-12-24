@@ -131,7 +131,7 @@ export class DadosRepo {
         await sleep(100);
         console.log('Erro ao obter dados adicionais para:', e, error);
       }
-      await sleep(20);
+      await sleep(50);
     }
     return data;
   }
