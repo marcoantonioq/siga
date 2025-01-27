@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { request, response } from 'express';
 import { searchDataAll } from '../../siga.js';
 
 export const app = express();
