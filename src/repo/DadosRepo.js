@@ -1,7 +1,7 @@
 import * as Cheerio from 'cheerio';
 import { Dados } from '../core/Dados.js';
 import { HTTPClient } from '../infra/http/index.js';
-import { Request } from '../infra/http/entity/Request.js';
+import { sleep } from '../util/sleep.js';
 
 /**
  * Classe para gerenciar um repositório de objetos Dados.
@@ -21,21 +21,18 @@ export class DadosRepo {
 
   /**
    * Função para obter as regionais.
+   * @param {string} token - Token de autenticação.
    * @returns {Promise<Map<number, string>>} Um mapa de regionais.
    */
   async getRegionais(token) {
     const resRegionais = await fetch(
       'https://siga-api.congregacao.org.br/api/rel/rel032/listar/rrms?codigoPais=null&codigoEstado=null',
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
     if (!resRegionais.ok) {
-      throw new Error(
-        `busca regionais status ${resRegionais.status}!: ${resRegionais.statusText}`
-      );
+      throw new Error(`Erro ao buscar regionais: ${resRegionais.statusText}`);
     }
     const regionais = await resRegionais.json();
     return new Map(
@@ -44,24 +41,21 @@ export class DadosRepo {
   }
 
   /**
-   * Função para obter os dados do ministério ou administradores.
-   * @param {string} url - Url
+   * Função para obter dados gerais (ministério ou administradores).
+   * @param {string} url - URL da API.
+   * @param {Map<number, string>} regionaisMap - Mapa de regionais.
    * @returns {Promise<Dados[]>} Lista de objetos Dados.
    */
-  async getDados(url) {
+  async fetchDados(url, regionaisMap) {
     const token = this.#client.token;
-    if (!token) throw new Error('Token inválido: ' + this.#client.token);
+    if (!token) throw new Error('Token inválido');
 
     let attempt = 0;
     const maxAttempts = 3;
-    let regionaisMap, resDados;
 
     while (attempt < maxAttempts) {
       try {
-        regionaisMap = await this.getRegionais(token);
-        if (!regionaisMap) throw new Error('Falha ao obter regionais');
-
-        resDados = await fetch(url, {
+        const resDados = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -85,8 +79,9 @@ export class DadosRepo {
           }),
         });
 
-        if (!resDados.ok)
+        if (!resDados.ok) {
           throw new Error(`Erro na requisição: ${resDados.statusText}`);
+        }
 
         const { dados } = await resDados.json();
         return dados.map((e) => {
@@ -94,7 +89,7 @@ export class DadosRepo {
           return Dados.create(e);
         });
       } catch (error) {
-        attempt += 1;
+        attempt++;
         if (attempt < maxAttempts) {
           console.log(`Tentativa ${attempt} falhou. Tentando novamente...`);
           await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -106,12 +101,55 @@ export class DadosRepo {
   }
 
   /**
+   * Função para adicionar detalhes dos servidores aos dados.
+   * @param {Dados[]} data - Dados dos servidores.
+   * @param {string} endpoint - URL do endpoint para obter detalhes.
+   * @returns {Promise<Dados[]>} Dados atualizados.
+   */
+  async addDetailsToData(data, endpoint) {
+    for (const e of data) {
+      try {
+        const result = await fetch(
+          `${endpoint}?codigoServo=${e.codigoServo}&codigoRelac=undefined`,
+          {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${this.#client.token}` },
+          }
+        );
+        if (!result.ok) {
+          throw new Error(
+            `Erro ao obter dados do servidor: ${result.statusText}`
+          );
+        }
+        const dados = await result.json();
+        for (const [key, value] of Object.entries(dados)) {
+          if (value !== null) {
+            e[key] = value;
+          }
+        }
+      } catch (error) {
+        await sleep(500);
+        console.log('Erro ao obter dados adicionais para:', e, error);
+      }
+      await sleep(100);
+    }
+    return data;
+  }
+
+  /**
    * Obtém os dados do ministério.
    * @returns {Promise<Dados[]>} Lista de objetos Dados do ministério.
    */
   async getDadosMinisterio() {
-    return await this.getDados(
-      'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela'
+    const token = this.#client.token;
+    const regionaisMap = await this.getRegionais(token);
+    const data = await this.fetchDados(
+      'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
+      regionaisMap
+    );
+    return await this.addDetailsToData(
+      data,
+      'https://siga-api.congregacao.org.br/api/rel/rel032/servo/visualizar'
     );
   }
 
@@ -120,26 +158,29 @@ export class DadosRepo {
    * @returns {Promise<Dados[]>} Lista de objetos Dados dos administradores.
    */
   async getDadosAdministradores() {
-    return await this.getDados(
-      'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela'
+    const token = this.#client.token;
+    const regionaisMap = await this.getRegionais(token);
+    const data = await this.fetchDados(
+      'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
+      regionaisMap
+    );
+    return await this.addDetailsToData(
+      data,
+      'https://siga-api.congregacao.org.br/api/rel/rel034/servo/visualizar'
     );
   }
 
   /**
-   * Verifica acessos
+   * Verifica acessos.
+   * @returns {Promise<Object>} Acessos disponíveis.
    */
   async access() {
-    const access = {
-      secretaria_cadastro: false,
-    };
-
-    var result = await this.#client.fetch({
+    const access = { secretaria_cadastro: false };
+    const result = await this.#client.fetch({
       url: 'https://siga.congregacao.org.br/SIS/SIS99908.aspx',
     });
-
     const $ = Cheerio.load(result.data);
-    const menu_cadastros = $('.submenu li#rotina_REL031');
-    access.secretaria_cadastro = !!menu_cadastros.text();
+    access.secretaria_cadastro = !!$('.submenu li#rotina_REL031').text();
     return access;
   }
 }

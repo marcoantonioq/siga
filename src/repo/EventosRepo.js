@@ -64,6 +64,7 @@ export class EventosRepo {
               OBSERVACOES: `${SEMANA}: ${HORA}`,
               STATUS: STATUS.replace(/<\/?[^>]+>/gi, ''),
               ID,
+              IGREJA_DESC: IGREJA,
             });
           })
           .forEach((e) => eventos.push(e));

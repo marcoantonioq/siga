@@ -28,6 +28,18 @@
  * @property {string} cargo - Cargo do servo.
  * @property {number} statusMandato - Status do mandato do servo.
  * @property {boolean} qsa - Indica se pertence ao quadro societário administrativo.
+ * @property {string} dataBatismo - Data de batismo do servo.
+ * @property {string} dataNascimento - Data de nascimento do servo.
+ * @property {string} telefoneCasa - Número de telefone da casa.
+ * @property {string} telefoneCelular - Número de telefone celular.
+ * @property {string} telefoneTrabalho - Número de telefone do trabalho.
+ * @property {string} telefoneRecado - Número de telefone para recados.
+ * @property {string} endereco - Endereço do servo.
+ * @property {string} bairro - Bairro do servo.
+ * @property {string} cidade - Cidade do servo.
+ * @property {string} cep - CEP do servo.
+ * @property {string} email1 - E-mail 1 do servo.
+ * @property {string} email2 - E-mail 2 do servo.
  */
 
 export class Dados {
@@ -64,6 +76,17 @@ export class Dados {
     cargo,
     statusMandato = 0,
     qsa = false,
+    dataBatismo = '',
+    dataNascimento = '',
+    telefoneCasa = '',
+    telefoneCelular = '',
+    telefoneTrabalho = '',
+    telefoneRecado = '',
+    endereco = '',
+    bairro = '',
+    cep = '',
+    email1 = '',
+    email2 = '',
   }) {
     this.codigoServo = codigoServo;
     this.codigoRelac = codigoRelac;
@@ -95,6 +118,17 @@ export class Dados {
     this.cargo = cargo;
     this.statusMandato = statusMandato;
     this.qsa = qsa;
+    this.dataBatismo = dataBatismo ? new Date(dataBatismo) : '';
+    this.dataNascimento = dataNascimento ? new Date(dataNascimento) : '';
+    this.telefoneCasa = telefoneCasa;
+    this.telefoneCelular = telefoneCelular;
+    this.telefoneTrabalho = telefoneTrabalho;
+    this.telefoneRecado = telefoneRecado;
+    this.endereco = endereco;
+    this.bairro = bairro;
+    this.cep = cep;
+    this.email1 = email1;
+    this.email2 = email2;
     this.eventos = [];
   }
 

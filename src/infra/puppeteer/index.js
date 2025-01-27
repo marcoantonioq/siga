@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import path from 'path';
+import fs from 'fs/promises';
 
 const settings = {
   headless: process.env.NODE_ENV === 'production',
@@ -17,21 +18,22 @@ export const PuppeteerManager = {
 
     const browser = await puppeteer.launch({
       headless: settings.headless,
+      executablePath: '/usr/bin/chromium',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-web-security',
-        `--disable-infobars`,
-        `--window-size=1280,800`,
-        `--disable-extensions`,
-        `--disable-dev-shm-usage`,
-        `--disable-gpu`,
-        `--allow-insecure-localhost`,
+        '--disable-infobars',
+        '--window-size=1280,800',
+        '--disable-extensions',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--allow-insecure-localhost',
       ],
       userDataDir: userDir,
     });
     console.log('Navegador iniciado para:', cookies);
-    this.browsers.set(cookies, browser);
+    this.browsers.set(cookies, { browser, userDir });
     return browser;
   },
 
@@ -43,7 +45,7 @@ export const PuppeteerManager = {
       return browser;
     }
     this.resetCloseTimer(user);
-    return this.browsers.get(user);
+    return this.browsers.get(user).browser;
   },
 
   async createPage({ cookies = '', domain = '' } = {}) {
@@ -74,10 +76,19 @@ export const PuppeteerManager = {
 
   async closeBrowser(user) {
     if (this.browsers.has(user)) {
-      const browser = this.browsers.get(user);
+      const { browser, userDir } = this.browsers.get(user);
       await browser.close();
       this.browsers.delete(user);
-      console.log('Navegador fechado para o perfil ', user);
+
+      // Remover a pasta do perfil
+      try {
+        await fs.rm(userDir, { recursive: true, force: true });
+        console.log('Pasta do perfil removida:', userDir);
+      } catch (error) {
+        console.error('Erro ao remover a pasta do perfil:', userDir, error);
+      }
+
+      console.log('Navegador fechado para o perfil', user);
     }
   },
 

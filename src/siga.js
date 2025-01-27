@@ -44,51 +44,17 @@ export async function searchDataAll(
   const filterRegex = new RegExp(filter, 'i');
 
   /**
-   * Buscar informações em secretarias
-   */
-  const secs = msg.tables.igrejas.filter(
-    (e) => e.IGREJA_TIPO === 11 && filterRegex.test(e.IGREJA_DESC)
-  );
-
-  for (const sec of secs) {
-    try {
-      await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
-      await client.login();
-      const { secretaria_cadastro } = await app.dados.access();
-      if (secretaria_cadastro) {
-        console.log('Coletando: ' + sec.IGREJA_DESC);
-        (
-          await Promise.all([
-            app.dados.getDadosMinisterio(),
-            app.dados.getDadosAdministradores(),
-          ])
-        )
-          .flat()
-          .forEach((e) => {
-            msg.tables.dados.push(e);
-          });
-        break;
-      } else {
-        console.log('Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC);
-      }
-    } catch (error) {
-      console.error('Erro ao coletar dados: ', error);
-    }
-  }
-
-  /**
    * Buscar dados em administrações
    */
-
   const adms = msg.tables.igrejas.filter(
     (e) => e.IGREJA_TIPO === 3 && filterRegex.test(e.IGREJA_DESC)
   );
 
+  await client.login();
   msg.username = client.username;
 
   for (const adm of adms) {
     console.log('Coletando ' + adm.IGREJA_DESC);
-
     const eventos = await app.eventos.getEventosSecretaria(
       date1,
       date2,
@@ -129,6 +95,38 @@ export async function searchDataAll(
     });
 
     msg.tables.fluxos.push(...fluxos);
+  }
+
+  /**
+   * Buscar informações em secretarias
+   */
+  const secs = msg.tables.igrejas.filter(
+    (e) => e.IGREJA_TIPO === 11 && filterRegex.test(e.IGREJA_DESC)
+  );
+
+  for (const sec of secs) {
+    try {
+      await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
+      const { secretaria_cadastro } = await app.dados.access();
+      if (secretaria_cadastro) {
+        console.log('Coletando: ' + sec.IGREJA_DESC);
+        (
+          await Promise.all([
+            app.dados.getDadosMinisterio(),
+            app.dados.getDadosAdministradores(),
+          ])
+        )
+          .flat()
+          .forEach((e) => {
+            msg.tables.dados.push(e);
+          });
+        break;
+      } else {
+        console.log('Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC);
+      }
+    } catch (error) {
+      console.error('Erro ao coletar dados: ', error);
+    }
   }
 
   return msg;
