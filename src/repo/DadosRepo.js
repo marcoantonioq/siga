@@ -169,7 +169,7 @@ export class DadosRepo {
       'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
       regionaisMap
     );
-    console.log('Dados: ', data.length);
+    console.log('Dados: ', data.length, regionaisMap);
     return await this.addDetailsToData(
       data,
       'https://siga-api.congregacao.org.br/api/rel/rel034/servo/visualizar'

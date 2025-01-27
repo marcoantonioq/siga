@@ -4,6 +4,15 @@ import { FluxosRepo } from './repo/FluxosRepo.js';
 import { IgrejasRepo } from './repo/IgrejasRepo.js';
 import { betweenDates } from './util/date.js';
 import { DadosRepo } from './repo/DadosRepo.js';
+import { writeFileSync } from 'fs';
+
+const saveJSON = async (data, filename) => {
+  try {
+    await writeFileSync(filename, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Erro ao salvar arquivo: ', error);
+  }
+};
 
 export async function searchDataAll(
   date1,
@@ -53,62 +62,55 @@ export async function searchDataAll(
   await client.login();
   msg.username = client.username;
 
-  // for (const adm of adms) {
-  //   console.log('Coletando ' + adm.IGREJA_DESC);
-  //   const eventos = await app.eventos.getEventosSecretaria(
-  //     date1,
-  //     date2,
-  //     adm.UNIDADE_COD
-  //   );
-  //   msg.tables.eventos.push(...eventos);
+  for (const adm of adms) {
+    console.log('Coletando ' + adm.IGREJA_DESC);
+    const eventos = await app.eventos.getEventosSecretaria(
+      date1,
+      date2,
+      adm.UNIDADE_COD
+    );
+    msg.tables.eventos.push(...eventos);
 
-  //   await app.igrejas.alterarIgreja(adm.UNIDADE_COD, adm.IGREJA_COD);
+    await app.igrejas.alterarIgreja(adm.UNIDADE_COD, adm.IGREJA_COD);
 
-  //   const despesas = await app.fluxos.getDespesas(date1, date2, adm.IGREJA_COD);
-  //   const depositos = await app.fluxos.getDepositos(
-  //     date1,
-  //     date2,
-  //     adm.IGREJA_COD
-  //   );
-  //   const coletas = await app.fluxos.getColetas(date1, date2);
+    const despesas = await app.fluxos.getDespesas(date1, date2, adm.IGREJA_COD);
+    const depositos = await app.fluxos.getDepositos(
+      date1,
+      date2,
+      adm.IGREJA_COD
+    );
+    const coletas = await app.fluxos.getColetas(date1, date2);
 
-  //   const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
-  //     const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
-  //     const igrejaData = msg.tables.igrejas.find(
-  //       (ig) =>
-  //         (id && ig.IGREJA_DESC.includes(id)) ||
-  //         ig?.IGREJA_DESC === f?.IGREJA_DESC
-  //     );
+    const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
+      const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
+      const igrejaData = msg.tables.igrejas.find(
+        (ig) =>
+          (id && ig.IGREJA_DESC.includes(id)) ||
+          ig?.IGREJA_DESC === f?.IGREJA_DESC
+      );
 
-  //     if (igrejaData) {
-  //       Object.assign(f, {
-  //         IGREJA_COD: igrejaData.IGREJA_COD,
-  //         IGREJA_TIPO: igrejaData.IGREJA_TIPO,
-  //       });
-  //     }
+      if (igrejaData) {
+        Object.assign(f, {
+          IGREJA_COD: igrejaData.IGREJA_COD,
+          IGREJA_TIPO: igrejaData.IGREJA_TIPO,
+        });
+      }
 
-  //     return Object.assign(f, {
-  //       IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
-  //       REGIONAL: adm.REGIONAL,
-  //       IGREJA_ADM: adm.IGREJA_ADM,
-  //     });
-  //   });
+      return Object.assign(f, {
+        IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
+        REGIONAL: adm.REGIONAL,
+        IGREJA_ADM: adm.IGREJA_ADM,
+      });
+    });
 
-  //   msg.tables.fluxos.push(...fluxos);
-  // }
+    msg.tables.fluxos.push(...fluxos);
+  }
 
   /**
    * Buscar informações em secretarias
    */
   const secs = msg.tables.igrejas.filter(
     (e) => e.IGREJA_TIPO === 11 && filterRegex.test(e.IGREJA_DESC)
-  );
-
-  console.log(
-    'secs',
-    msg.tables.igrejas
-      .filter((e) => e.IGREJA_TIPO === 11)
-      .map((e) => [e.IGREJA_DESC, e.IGREJA_TIPO])
   );
 
   for (const sec of secs) {
@@ -135,6 +137,8 @@ export async function searchDataAll(
       console.error('Erro ao coletar dados: ', error);
     }
   }
+
+  saveJSON(msg, 'user_data/data.json');
 
   return msg;
 }
