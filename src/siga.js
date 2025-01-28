@@ -4,6 +4,15 @@ import { FluxosRepo } from './repo/FluxosRepo.js';
 import { IgrejasRepo } from './repo/IgrejasRepo.js';
 import { betweenDates } from './util/date.js';
 import { DadosRepo } from './repo/DadosRepo.js';
+import { writeFileSync } from 'fs';
+
+const saveJSON = async (data, filename) => {
+  try {
+    await writeFileSync(filename, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Erro ao salvar arquivo: ', error);
+  }
+};
 
 export async function searchDataAll(
   date1,
@@ -128,6 +137,8 @@ export async function searchDataAll(
       console.error('Erro ao coletar dados: ', error);
     }
   }
+
+  saveJSON(msg, 'user_data/data.json');
 
   return msg;
 }

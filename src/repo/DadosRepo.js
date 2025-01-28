@@ -25,19 +25,24 @@ export class DadosRepo {
    * @returns {Promise<Map<number, string>>} Um mapa de regionais.
    */
   async getRegionais(token) {
-    const resRegionais = await fetch(
-      'https://siga-api.congregacao.org.br/api/rel/rel032/listar/rrms?codigoPais=null&codigoEstado=null',
-      {
-        headers: { Authorization: `Bearer ${token}` },
+    try {
+      const resRegionais = await fetch(
+        'https://siga-api.congregacao.org.br/api/rel/rel032/listar/rrms?codigoPais=null&codigoEstado=null',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!resRegionais.ok) {
+        throw new Error(resRegionais.statusText);
       }
-    );
-    if (!resRegionais.ok) {
-      throw new Error(`Erro ao buscar regionais: ${resRegionais.statusText}`);
+      const regionais = await resRegionais.json();
+      return new Map(
+        regionais.map(({ codigo, nomeExibicao }) => [codigo, nomeExibicao])
+      );
+    } catch (error) {
+      console.log('Erro ao obter regionais:', error);
+      return new Map();
     }
-    const regionais = await resRegionais.json();
-    return new Map(
-      regionais.map(({ codigo, nomeExibicao }) => [codigo, nomeExibicao])
-    );
   }
 
   /**
@@ -131,7 +136,7 @@ export class DadosRepo {
         await sleep(500);
         console.log('Erro ao obter dados adicionais para:', e, error);
       }
-      await sleep(100);
+      await sleep(150);
     }
     return data;
   }
@@ -164,6 +169,7 @@ export class DadosRepo {
       'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
       regionaisMap
     );
+    console.log('Dados: ', data.length, regionaisMap);
     return await this.addDetailsToData(
       data,
       'https://siga-api.congregacao.org.br/api/rel/rel034/servo/visualizar'
