@@ -8,7 +8,7 @@ app.use(express.json({ limit: '1gb' }));
 
 // @ts-ignore
 app.post('/siga', async (req, res) => {
-  const { date1, date2, filter, cookies } = req.body;
+  const { date1, date2, filter, cookies, options } = req.body;
   if (!(date1 && date2 && cookies)) {
     return res
       .status(400)
@@ -35,7 +35,7 @@ app.post('/siga', async (req, res) => {
     }
 
     const requestPromise = (async () => {
-      const result = await searchDataAll(date1, date2, filter, cookies);
+      const result = await searchDataAll(date1, date2, filter, cookies, '', options );
       return result;
     })();
 
