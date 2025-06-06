@@ -32,6 +32,7 @@ export class DadosRepo {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      process.stdout.write('.');
       if (!resRegionais.ok) {
         throw new Error(resRegionais.statusText);
       }
@@ -83,6 +84,7 @@ export class DadosRepo {
             paginacao: null,
           }),
         });
+        process.stdout.write('.');
 
         if (!resDados.ok) {
           throw new Error(`Erro na requisição: ${resDados.statusText}`);
@@ -121,6 +123,7 @@ export class DadosRepo {
             headers: { Authorization: `Bearer ${this.#client.token}` },
           }
         );
+        process.stdout.write('.');
         if (!result.ok) {
           throw new Error(
             `Erro ao obter dados do servidor: ${result.statusText}`

@@ -126,135 +126,182 @@
         <label for="cookies">Cookies*:</label>
         <input type="text" id="cookies" v-model="data.cookies" placeholder="Digite os cookies" />
       </div>
-      <button @click="loadData" :disabled="loading">Carregar</button>
-      <div class="loader" v-show="loading"></div>
-      <div class="loading-text" v-if="loading">{{ loadingText }}</div>
-      <div class="error" v-if="errorMessage" v-html="errorMessage"></div>
+      <div class="form-group">
+        <label>Itens a carregar*:</label>
+        <div>
+          <div v-for="(label, opt) in optionLabels" :key="opt" v-if="opt !== 'igrejas'">
+            <label>
+              <input type="checkbox" :value="opt" v-model="data.options" />
+              {{ label }}
+            </label>
+          </div>
+        </div>
+        <button @click="loadData" :disabled="loading">Carregar</button>
+        <div class="loader" v-show="loading"></div>
+        <div class="loading-text" v-if="loading">{{ loadingText }}</div>
+        <div class="error" v-if="errorMessage" v-html="errorMessage"></div>
+      </div>
     </div>
-  </div>
 
-  <script>
-    const { createApp, ref } = Vue;
+    <script>
+      const { createApp, ref } = Vue;
 
-    createApp({
-      setup() {
-        const loading = ref(false);
-        const loadingText = ref('');
-        const errorMessage = ref('');
-        const attemptCount = ref(0);
-        const maxAttempts = 100;
+      createApp({
+        setup() {
+          const loading = ref(false);
+          const loadingText = ref('');
+          const errorMessage = ref('');
+          const attemptCount = ref(0);
+          const maxAttempts = 100;
 
-        const data = ref({
-          username: '.',
-          date1: '',
-          date2: '',
-          filter: '',
-          cookies: '',
-        });
-
-        const loadFromLocalStorage = () => {
-          const storedData =
-            JSON.parse(localStorage.getItem('siga.data')) || {};
-          data.value = { ...data.value, ...storedData };
-        };
-
-        const saveDataToLocalStorage = () => {
-          localStorage.setItem('siga.data', JSON.stringify(data.value));
-        };
-
-        const validateInputs = () => {
-          if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
-            errorMessage.value =
-              'Por favor, preencha todos os campos obrigatórios.';
-            return false;
-          }
-          errorMessage.value = '';
-          return true;
-        };
-
-        const sleep = (ms) =>
-          new Promise((resolve) => setTimeout(resolve, ms));
-
-        const loadData = async () => {
-          if (!validateInputs()) return;
-
-          loading.value = true;
-          loadingText.value = 'Carregando... Por favor, aguarde.';
-          saveDataToLocalStorage();
-          attemptCount.value = 0;
-
-          while (attemptCount.value < maxAttempts) {
-            try {
-              attemptCount.value += 1;
-              await attemptLoadData();
-            } catch (error) {
-              loadingText.value = `Tentativa ${attemptCount.value + 1
-                } de ${maxAttempts}...`;
-              console.log(loadingText.value);
-              console.log('Erro loadData: ', error);
-              await sleep(2 * 60 * 1000);
-            }
-          }
-          errorMessage.value =
-            'Erro ao carregar dados após várias tentativas.';
-          resetLoading();
-        };
-
-        const attemptLoadData = () => {
-          return new Promise((resolve, reject) => {
-            google.script.run
-              .withSuccessHandler((data) =>
-                handleResponse(data, resolve, reject)
-              )
-              .withFailureHandler((error) =>
-                handleError(error, resolve, reject)
-              )
-              .baixarSiga(data.value);
+          const data = ref({
+            username: '.',
+            date1: '',
+            date2: '',
+            filter: '',
+            cookies: '',
+            options: ['igrejas'],
           });
-        };
 
-        const handleResponse = (data, resolve, reject) => {
-          if (data.success) {
-            loading.value = false;
-            resetLoading();
-            google.script.host.close();
-            resolve(data);
-          } else {
-            errorMessage.value = data.errors
-              ? data.errors.join('<br>\n')
-              : '';
-            reject(new Error(errorMessage.value));
-          }
-        };
+          const optionLabels = {
+            igrejas: 'Igrejas (Obrigatório)',
+            fluxos: 'Fluxos',
+            eventos: 'Eventos',
+            dados: 'Dados',
+            solicitacoes: 'Solicitações',
+            fluxoOfertas: 'Fluxo de Ofertas',
+          };
 
-        const handleError = (error, resolve, reject) => {
-          console.log('Error::: ', error);
-          if (
-            ['autorização', 'permissão'].some((t) =>
-              String(error).includes(t)
-            )
-          ) {
+          const loadFromLocalStorage = () => {
+            const storedData =
+              JSON.parse(localStorage.getItem('siga.data')) || {};
+            data.value = { ...data.value, ...storedData };
+            // Garante que igrejas está sempre selecionado
+            if (!data.value.options || !Array.isArray(data.value.options)) {
+              data.value.options = ['igrejas'];
+            }
+            if (!data.value.options.includes('igrejas')) {
+              data.value.options.unshift('igrejas');
+            }
+          };
+
+          const saveDataToLocalStorage = () => {
+            localStorage.setItem('siga.data', JSON.stringify(data.value));
+          };
+
+          const validateInputs = () => {
+            if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
+              errorMessage.value =
+                'Por favor, preencha todos os campos obrigatórios.';
+              return false;
+            }
+            if (!data.value.options.includes('igrejas')) {
+              errorMessage.value = 'O item "Igrejas" é obrigatório.';
+              return false;
+            }
+            errorMessage.value = '';
+            return true;
+          };
+
+          const sleep = (ms) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+
+          const loadData = async () => {
+            if (!validateInputs()) return;
+
+            loading.value = true;
+            loadingText.value = 'Carregando... Por favor, aguarde.';
+            saveDataToLocalStorage();
+            attemptCount.value = 0;
+
+            while (attemptCount.value < maxAttempts) {
+              try {
+                attemptCount.value += 1;
+                await attemptLoadData();
+              } catch (error) {
+                loadingText.value = `Tentativa ${attemptCount.value + 1
+                  } de ${maxAttempts}...`;
+                console.log(loadingText.value);
+                console.log('Erro loadData: ', error);
+                await sleep(2 * 60 * 1000);
+              }
+            }
             errorMessage.value =
-              'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
-          } else {
-            errorMessage.value = error;
-          }
+              'Erro ao carregar dados após várias tentativas.';
+            resetLoading();
+          };
 
-          loading.value = false;
-          reject(new Error(errorMessage.value));
-        };
+          const attemptLoadData = () => {
+            // Garante que igrejas está sempre presente
+            if (!data.value.options.includes('igrejas')) {
+              data.value.options.unshift('igrejas');
+            }
+            // Envia apenas os itens selecionados
+            const payload = {
+              ...data.value,
+              options: data.value.options,
+            };
+            return new Promise((resolve, reject) => {
+              google.script.run
+                .withSuccessHandler((data) =>
+                  handleResponse(data, resolve, reject)
+                )
+                .withFailureHandler((error) =>
+                  handleError(error, resolve, reject)
+                )
+                .baixarSiga(payload);
+            });
+          };
 
-        const resetLoading = () => {
-          loading.value = false;
-          loadingText.value = '';
-        };
+          const handleResponse = (data, resolve, reject) => {
+            if (data.success) {
+              loading.value = false;
+              resetLoading();
+              google.script.host.close();
+              resolve(data);
+            } else {
+              errorMessage.value = data.errors
+                ? data.errors.join('<br>\n')
+                : '';
+              reject(new Error(errorMessage.value));
+            }
+          };
 
-        loadFromLocalStorage();
+          const handleError = (error, resolve, reject) => {
+            console.log('Error::: ', error);
+            if (
+              ['autorização', 'permissão'].some((t) =>
+                String(error).includes(t)
+              )
+            ) {
+              errorMessage.value =
+                'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
+            } else {
+              errorMessage.value = error;
+            }
 
-        return { loading, loadingText, loadData, data, errorMessage };
-      },
-    }).mount('#app');
-  </script>
+            loading.value = false;
+            reject(new Error(errorMessage.value));
+          };
+
+          const resetLoading = () => {
+            loading.value = false;
+            loadingText.value = '';
+          };
+
+          loadFromLocalStorage();
+
+          return {
+            loading,
+            loadingText,
+            loadData,
+            data,
+            errorMessage,
+            optionLabels,
+          };
+        },
+      }).mount('#app');
+    </script>
 </body>
 
 </html>

@@ -5,6 +5,7 @@ import { IgrejasRepo } from './repo/IgrejasRepo.js';
 import { betweenDates } from './util/date.js';
 import { DadosRepo } from './repo/DadosRepo.js';
 import { writeFileSync } from 'fs';
+import { SolicitacoesRepo } from './repo/SolicitacoesRepo.js';
 
 const saveJSON = async (data, filename) => {
   try {
@@ -19,7 +20,8 @@ export async function searchDataAll(
   date2,
   filter,
   cookies,
-  username = '.'
+  username = '.',
+  options = ['igrejas', 'fluxos', 'eventos', 'dados', 'solicitacoes'] // fluxoOfertas,
 ) {
   const client = new HTTPClient({
     cookie: cookies,
@@ -30,6 +32,7 @@ export async function searchDataAll(
     igrejas: new IgrejasRepo([], client),
     eventos: new EventosRepo([], client),
     dados: new DadosRepo([], client),
+    solicitacoes: new SolicitacoesRepo([], client),
   };
 
   const msg = {
@@ -64,48 +67,60 @@ export async function searchDataAll(
 
   for (const adm of adms) {
     console.log('Coletando ' + adm.IGREJA_DESC);
-    const eventos = await app.eventos.getEventosSecretaria(
-      date1,
-      date2,
-      adm.UNIDADE_COD
-    );
-    msg.tables.eventos.push(...eventos);
-
     await app.igrejas.alterarIgreja(adm.UNIDADE_COD, adm.IGREJA_COD);
 
-    const despesas = await app.fluxos.getDespesas(date1, date2, adm.IGREJA_COD);
-    const depositos = await app.fluxos.getDepositos(
-      date1,
-      date2,
-      adm.IGREJA_COD
-    );
-    const coletas = await app.fluxos.getColetas(date1, date2);
-    const ofertas = await app.fluxos.getOfertas(date1, date2);
-    
+    if (options.includes('eventos')) {
+      const eventos = await app.eventos.getEventosSecretaria(
+        date1,
+        date2,
+        adm.UNIDADE_COD
+      );
+      msg.tables.eventos.push(...eventos);
+    }
 
-    const fluxos = [...despesas, ...depositos, ...coletas, ...ofertas].map((f) => {
-      const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
-      const igrejaData = msg.tables.igrejas.find(
-        (ig) =>
-          (id && ig.IGREJA_DESC.includes(id)) ||
-          ig?.IGREJA_DESC === f?.IGREJA_DESC
+    let ofertas = [];
+    if (options.includes('fluxoOfertas')) {
+      ofertas = await app.fluxos.getOfertas(date1, date2);
+    }
+    if (options.includes('fluxos')) {
+      const despesas = await app.fluxos.getDespesas(
+        date1,
+        date2,
+        adm.IGREJA_COD
+      );
+      const depositos = await app.fluxos.getDepositos(
+        date1,
+        date2,
+        adm.IGREJA_COD
+      );
+      const coletas = await app.fluxos.getColetas(date1, date2);
+
+      const fluxos = [...despesas, ...depositos, ...coletas, ...ofertas].map(
+        (f) => {
+          const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
+          const igrejaData = msg.tables.igrejas.find(
+            (ig) =>
+              (id && ig.IGREJA_DESC.includes(id)) ||
+              ig?.IGREJA_DESC === f?.IGREJA_DESC
+          );
+
+          if (igrejaData) {
+            Object.assign(f, {
+              IGREJA_COD: igrejaData.IGREJA_COD,
+              IGREJA_TIPO: igrejaData.IGREJA_TIPO,
+            });
+          }
+
+          return Object.assign(f, {
+            IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
+            REGIONAL: adm.REGIONAL,
+            IGREJA_ADM: adm.IGREJA_ADM,
+          });
+        }
       );
 
-      if (igrejaData) {
-        Object.assign(f, {
-          IGREJA_COD: igrejaData.IGREJA_COD,
-          IGREJA_TIPO: igrejaData.IGREJA_TIPO,
-        });
-      }
-
-      return Object.assign(f, {
-        IGREJA: f.IGREJA.replace(/^BR \d+-\d+ -/, '').trim(),
-        REGIONAL: adm.REGIONAL,
-        IGREJA_ADM: adm.IGREJA_ADM,
-      });
-    });
-
-    msg.tables.fluxos.push(...fluxos);
+      msg.tables.fluxos.push(...fluxos);
+    }
   }
 
   /**
@@ -118,22 +133,29 @@ export async function searchDataAll(
   for (const sec of secs) {
     try {
       await app.igrejas.alterarIgreja(sec.UNIDADE_COD, sec.IGREJA_COD);
-      const { secretaria_cadastro } = await app.dados.access();
-      if (secretaria_cadastro) {
-        console.log('Coletando: ' + sec.IGREJA_DESC);
-        (
-          await Promise.all([
-            app.dados.getDadosMinisterio(),
-            app.dados.getDadosAdministradores(),
-          ])
-        )
-          .flat()
-          .forEach((e) => {
-            msg.tables.dados.push(e);
-          });
-        break;
-      } else {
-        console.log('Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC);
+      if (options.includes('dados')) {
+        const { secretaria_cadastro } = await app.dados.access();
+        if (secretaria_cadastro) {
+          console.log('Coletando: ' + sec.IGREJA_DESC);
+          (
+            await Promise.all([
+              app.dados.getDadosMinisterio(),
+              app.dados.getDadosAdministradores(),
+            ])
+          )
+            .flat()
+            .forEach((e) => {
+              msg.tables.dados.push(e);
+            });
+          break;
+        } else {
+          console.log(
+            'Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC
+          );
+        }
+      }
+      if (options.includes('solicitacoes')) {
+        msg.tables.solicitacoes = await app.solicitacoes.getSolicitacoes();
       }
     } catch (error) {
       console.error('Erro ao coletar dados: ', error);
