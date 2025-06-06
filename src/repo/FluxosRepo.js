@@ -407,7 +407,6 @@ export class FluxosRepo {
             igreja = est.description,
             categoria = '',
             observacoes = [];
-          console.log('Obtendo valores de ', est);
 
           for (const row of values) {
             if (/^(CLT|RJM)/.test(`${row[0]}`)) {
@@ -434,7 +433,6 @@ export class FluxosRepo {
                   ORIGEM: 'SIGA',
                   SETOR: setor,
                 });
-                console.log('Fluxo Oferta: ', fluxo);
                 fluxos.push(fluxo);
               }
             }
