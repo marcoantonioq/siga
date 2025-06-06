@@ -434,7 +434,6 @@ export class FluxosRepo {
                   ORIGEM: 'SIGA',
                   SETOR: setor,
                 });
-                console.log('Fluxo Oferta: ', fluxo);
                 fluxos.push(fluxo);
               }
             }

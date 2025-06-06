@@ -83,7 +83,7 @@ export async function searchDataAll(
     const ofertas = await app.fluxos.getOfertas(date1, date2);
     
 
-    const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
+    const fluxos = [...despesas, ...depositos, ...coletas, ...ofertas].map((f) => {
       const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
       const igrejaData = msg.tables.igrejas.find(
         (ig) =>
