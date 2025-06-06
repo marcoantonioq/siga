@@ -80,6 +80,8 @@ export async function searchDataAll(
       adm.IGREJA_COD
     );
     const coletas = await app.fluxos.getColetas(date1, date2);
+    const ofertas = await app.fluxos.getOfertas(date1, date2);
+    
 
     const fluxos = [...despesas, ...depositos, ...coletas].map((f) => {
       const id = f.IGREJA_DESC.match(/\b\d{2}-\d+\b/)?.[0] || null;
