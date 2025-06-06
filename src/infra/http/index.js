@@ -56,7 +56,7 @@ export class HTTPClient {
       window.localStorage.getItem('ccbsiga-token-api')
     );
 
-    console.log('Token gerado: ', this.#token);
+    // console.log('Token gerado: ', this.#token);
     page.close();
 
     /**
