@@ -60,6 +60,7 @@ export class ClientHttpServer {
         headers: request.headers,
         body: request.data,
       });
+      process.stdout.write('.');
 
       result.code = res.status;
       result.type = res.headers.get('content-type') || '';

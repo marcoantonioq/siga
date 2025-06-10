@@ -419,14 +419,18 @@ export class FluxosRepo {
               for (let i = 5; i < row.length; i++) {
                 if (typeof row[i] !== 'number') continue;
                 if (observacoes[i].startsWith('Total')) continue;
+                const [dia, mes, ano] = row[4].split('/');
+                let hora = '09:30:00';
+                if (categoria === 'CLT') {
+                  hora = '19:30:00';
+                }
+                const dataBrasilia = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${hora}-03:00`;
                 const fluxo = Fluxo.create({
                   FLUXO: 'Oferta',
                   IGREJA: igreja,
                   IGREJA_DESC: igreja,
                   CATEGORIA: categoria,
-                  DATA: new Date(
-                    row[4].split('/').reverse().join('-')
-                  ).toISOString(),
+                  DATA: dataBrasilia,
                   VALOR: row[i],
                   OBSERVACOES: `Tipo: ${observacoes[i]};`,
                   REF: ref,

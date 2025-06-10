@@ -21,7 +21,7 @@ export async function searchDataAll(
   filter,
   cookies,
   username = '.',
-  options = ['igrejas', 'fluxos', 'eventos', 'dados', 'solicitacoes']
+  options = ['igrejas', 'fluxos', 'eventos', 'dados', 'solicitacoes'] // fluxoOfertas,
 ) {
   const client = new HTTPClient({
     cookie: cookies,
@@ -78,6 +78,10 @@ export async function searchDataAll(
       msg.tables.eventos.push(...eventos);
     }
 
+    let ofertas = [];
+    if (options.includes('fluxoOfertas')) {
+      ofertas = await app.fluxos.getOfertas(date1, date2);
+    }
     if (options.includes('fluxos')) {
       const despesas = await app.fluxos.getDespesas(
         date1,
@@ -90,7 +94,6 @@ export async function searchDataAll(
         adm.IGREJA_COD
       );
       const coletas = await app.fluxos.getColetas(date1, date2);
-      const ofertas = await app.fluxos.getOfertas(date1, date2);
 
       const fluxos = [...despesas, ...depositos, ...coletas, ...ofertas].map(
         (f) => {

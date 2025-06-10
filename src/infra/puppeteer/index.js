@@ -96,7 +96,7 @@ export const PuppeteerManager = {
     if (this.timeoutIds.has(user)) clearTimeout(this.timeoutIds.get(user));
     this.timeoutIds.set(
       user,
-      setTimeout(() => this.closeBrowser(user), 5 * 60 * 1000) // 5 minutos
+      setTimeout(() => this.closeBrowser(user), 20 * 60 * 1000) // 20 minutos
     );
   },
 

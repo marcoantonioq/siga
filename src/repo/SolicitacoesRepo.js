@@ -75,6 +75,7 @@ export class SolicitacoesRepo {
           options.body = JSON.stringify(body);
 
           const response = await fetch(url, options);
+          process.stdout.write('-');
           const text = await response.text();
           let data;
           try {
@@ -110,7 +111,7 @@ export class SolicitacoesRepo {
       } catch (err) {
         console.error('Erro na requisição:', err);
       }
-      return todosDados
+      return todosDados;
     } catch (error) {
       console.error('Erro ao buscar solicitações:', error);
       return [];
