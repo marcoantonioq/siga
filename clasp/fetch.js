@@ -62,6 +62,8 @@ function criarTabelasNoGoogleSheets(msg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   for (const tableName in msg.tables) {
+    console.log("Dados da tabela:", tableName, msg.tables[tableName].length);
+    
     const data = msg.tables[tableName];
     const sheet = ss.getSheetByName(tableName) || ss.insertSheet(tableName);
 
