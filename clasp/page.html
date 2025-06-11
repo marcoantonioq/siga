@@ -68,6 +68,11 @@
     button:hover {
       background-color: #2980b9;
     }
+    
+    button:disabled {
+      background-color: #b0c4de;
+      cursor: not-allowed;
+    }
 
     .loader {
       border-top: 4px solid #3498db;
@@ -160,10 +165,10 @@
           const optionLabels = {
             igrejas: 'Igrejas (Obrigatório)',
             fluxos: 'Fluxos',
+            fluxoOfertas: 'Fluxo de Ofertas',
             eventos: 'Eventos',
             dados: 'Dados',
             solicitacoes: 'Solicitações',
-            fluxoOfertas: 'Fluxo de Ofertas',
           };
 
           const loadFromLocalStorage = () => {
