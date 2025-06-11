@@ -37,7 +37,13 @@ export async function searchDataAll(
 
   const msg = {
     settings: { date1, date2, filter, cookies, betweenDates: [] },
-    tables: { igrejas: [], fluxos: [], eventos: [], dados: [] },
+    tables: {
+      igrejas: [],
+      fluxos: [],
+      eventos: [],
+      dados: [],
+      solicitacoes: [],
+    },
     success: false,
     username,
     errors: [],
