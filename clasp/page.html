@@ -126,9 +126,9 @@
         <input type="text" id="cookies" v-model="data.cookies" placeholder="Digite os cookies" />
       </div>
       <div class="form-group">
-        <label>Itens a carregar*:</label>
+        <label>Itens a carregar:</label>
         <div>
-          <div v-for="(label, opt) in optionLabels" :key="opt" v-if="opt !== 'igrejas'">
+          <div v-for="(label, opt) in optionLabels" :key="opt" >
             <label>
               <input type="checkbox" :value="opt" v-model="data.options" />
               {{ label }}
@@ -159,141 +159,108 @@
             date2: '',
             filter: '',
             cookies: '',
-            options: ['igrejas'],
+            options: [],
           });
 
           const optionLabels = {
-            igrejas: 'Igrejas (Obrigatório)',
             fluxos: 'Fluxos',
-            fluxoOfertas: 'Fluxo de Ofertas',
+            ofertas: 'Ofertas',
             eventos: 'Eventos',
             dados: 'Dados',
             solicitacoes: 'Solicitações',
           };
 
-          const loadFromLocalStorage = () => {
-            const storedData =
-              JSON.parse(localStorage.getItem('siga.data')) || {};
-            data.value = { ...data.value, ...storedData };
-            // Garante que igrejas está sempre selecionado
-            if (!data.value.options || !Array.isArray(data.value.options)) {
-              data.value.options = ['igrejas'];
-            }
-            if (!data.value.options.includes('igrejas')) {
-              data.value.options.unshift('igrejas');
-            }
-          };
+          function carregarLocalStorage() {
+            const armazenado = JSON.parse(localStorage.getItem('siga.data')) || {};
+            data.value = { ...data.value, ...armazenado };
+          }
 
-          const saveDataToLocalStorage = () => {
+          function salvarLocalStorage() {
             localStorage.setItem('siga.data', JSON.stringify(data.value));
-          };
+          }
 
-          const validateInputs = () => {
+          function validarCampos() {
             if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
-              errorMessage.value =
-                'Por favor, preencha todos os campos obrigatórios.';
-              return false;
-            }
-            if (!data.value.options.includes('igrejas')) {
-              errorMessage.value = 'O item "Igrejas" é obrigatório.';
+              errorMessage.value = 'Por favor, preencha todos os campos obrigatórios.';
               return false;
             }
             errorMessage.value = '';
             return true;
-          };
+          }
 
-          const sleep = (ms) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
+          function esperar(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
 
-          const loadData = async () => {
-            if (!validateInputs()) return;
-
+          async function carregarDados() {
+            if (!validarCampos()) return;
             loading.value = true;
-            loadingText.value = 'Carregando... Por favor, aguarde.';
-            saveDataToLocalStorage();
+            loadingText.value = 'Servidor Offline! Por favor, aguarde...';
+            salvarLocalStorage();
             attemptCount.value = 0;
 
             while (attemptCount.value < maxAttempts) {
               try {
-                attemptCount.value += 1;
-                await attemptLoadData();
+                attemptCount.value++;
+                await tentarCarregarDados();
+                return;
               } catch (error) {
-                loadingText.value = `Tentativa ${attemptCount.value + 1
-                  } de ${maxAttempts}...`;
-                console.log(loadingText.value);
-                console.log('Erro loadData: ', error);
-                await sleep(2 * 60 * 1000);
+                loadingText.value = `Tentativa ${attemptCount.value + 1} de ${maxAttempts}...`;
+                console.log(loadingText.value, error);
+                await esperar(2 * 60 * 1000);
               }
             }
-            errorMessage.value =
-              'Erro ao carregar dados após várias tentativas.';
-            resetLoading();
-          };
+            errorMessage.value = 'Erro ao carregar dados após várias tentativas.';
+            resetarLoading();
+          }
 
-          const attemptLoadData = () => {
-            // Garante que igrejas está sempre presente
-            if (!data.value.options.includes('igrejas')) {
-              data.value.options.unshift('igrejas');
-            }
-            // Envia apenas os itens selecionados
-            const payload = {
-              ...data.value,
-              options: data.value.options,
-            };
+          function tentarCarregarDados() {
+            let opcoes = Array.isArray(data.value.options) ? [...data.value.options] : [];
+            if (!opcoes.includes('igrejas')) opcoes.unshift('igrejas');
+            const payload = { ...data.value, options: opcoes };
+            console.log("Payload enviado: ", payload);
+
             return new Promise((resolve, reject) => {
               google.script.run
-                .withSuccessHandler((data) =>
-                  handleResponse(data, resolve, reject)
-                )
-                .withFailureHandler((error) =>
-                  handleError(error, resolve, reject)
-                )
+                .withSuccessHandler(res => tratarResposta(res, resolve, reject))
+                .withFailureHandler(err => tratarErro(err, resolve, reject))
                 .baixarSiga(payload);
             });
-          };
+          }
 
-          const handleResponse = (data, resolve, reject) => {
-            if (data.success) {
-              loading.value = false;
-              resetLoading();
+          function tratarResposta(res, resolve, reject) {
+            if (res.success) {
+              resetarLoading();
               google.script.host.close();
-              resolve(data);
+              resolve(res);
             } else {
-              errorMessage.value = data.errors
-                ? data.errors.join('<br>\n')
-                : '';
+              errorMessage.value = res.errors ? res.errors.join('<br>\n') : '';
               reject(new Error(errorMessage.value));
             }
-          };
+          }
 
-          const handleError = (error, resolve, reject) => {
-            console.log('Error::: ', error);
-            if (
-              ['autorização', 'permissão'].some((t) =>
-                String(error).includes(t)
-              )
-            ) {
-              errorMessage.value =
-                'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
+          function tratarErro(err, resolve, reject) {
+            console.log('Error::: ', err);
+            if (['autorização', 'permissão'].some(t => String(err).includes(t))) {
+              errorMessage.value = 'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
             } else {
-              errorMessage.value = error;
+              errorMessage.value = err;
             }
-
-            loading.value = false;
+            resetarLoading();
             reject(new Error(errorMessage.value));
-          };
+          }
 
-          const resetLoading = () => {
+          function resetarLoading() {
             loading.value = false;
             loadingText.value = '';
-          };
+          }
 
-          loadFromLocalStorage();
+          carregarLocalStorage();
 
           return {
             loading,
             loadingText,
-            loadData,
+            loadData: carregarDados,
             data,
             errorMessage,
             optionLabels,

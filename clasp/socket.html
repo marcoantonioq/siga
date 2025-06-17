@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!--
+    /**
+     * Projeto em:
+     * https://github.com/marcoantonioq/siga
+     */
+    -->
+    <base target="_top" />
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+      }
+
+      h1 {
+        color: #3498db;
+        text-align: center;
+        font-size: 1.5em;
+      }
+
+      .form-container {
+        border-radius: 8px;
+        max-width: 400px;
+        margin: 0 auto;
+        font-size: 1em;
+      }
+
+      .form-group {
+        margin-bottom: 5px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      input[type='date'],
+      input[type='text'] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+      }
+
+      input[type='date']:focus,
+      input[type='text']:focus {
+        border-color: #3498db;
+        outline: none;
+      }
+
+      button {
+        width: 100%;
+        padding: 8px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      button:disabled {
+        background-color: #b0c4de;
+        cursor: not-allowed;
+      }
+
+      .loader {
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      .error {
+        color: red;
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      .toast {
+        background: #222;
+        color: #fff;
+        padding: 24px 32px 24px 32px;
+        border-radius: 10px;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        min-width: 240px;
+        min-height: 80px;
+        text-align: center;
+        opacity: 0.97;
+        font-size: 1.1em;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .toast .loader {
+        margin: 0 0 12px 0;
+        width: 32px;
+        height: 32px;
+        border-width: 4px;
+      }
+
+      .list {
+        margin: 10px 0 0 0;
+        padding: 0;
+        list-style: none;
+        max-height: 120px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        border-radius: 4px;
+      }
+
+      .list label {
+        font-weight: normal;
+        margin: 0;
+        padding: 2px 8px;
+        display: block;
+        cursor: pointer;
+      }
+
+      .date-range-row {
+        display: flex;
+        gap: 10px;
+      }
+
+      .date-range-row .form-group {
+        flex: 1 1 0;
+        margin-bottom: 0;
+      }
+
+      .count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e74c3c;
+        color: #fff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-weight: bold;
+        font-size: 13px;
+        margin-left: 8px;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          font-size: 13px;
+        }
+
+        .form-container {
+          font-size: 0.95em;
+        }
+
+        h1 {
+          font-size: 1.1em;
+        }
+
+        label {
+          font-size: 0.97em;
+        }
+
+        input,
+        button,
+        .list {
+          font-size: 0.97em;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="form-container">
+        <template v-if="!app.wsConnected">
+          <span
+            style="
+              color: gray;
+              display: block;
+              text-align: center;
+              margin-top: 20px;
+            "
+          >
+            Reconectando no servidor...
+          </span>
+        </template>
+        <template v-else>
+          <div class="date-range-row">
+            <div class="form-group">
+              <label for="dataInicial">Data Inicial*:</label>
+              <input type="date" id="dataInicial" v-model="form.date1" />
+            </div>
+            <div class="form-group">
+              <label for="dataFinal">Data Final*:</label>
+              <input
+                type="date"
+                id="dataFinal"
+                v-model="form.date2"
+                :min="form.date1"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cookies">Cookies*:</label>
+            <input
+              type="text"
+              id="cookies"
+              v-model="form.auth.cookies"
+              placeholder="Digite os cookies"
+              @blur="onCookiesBlur"
+            />
+          </div>
+          <div class="form-group" v-if="form.adms.length">
+            <label>Unidades:</label>
+            <ul class="list">
+              <li v-for="adm in form.adms" :key="adm.id">
+                <label>
+                  <input type="checkbox" :value="adm.id" v-model="adm.active" />
+                  {{ adm.description }}
+                  <span class="count">
+                    {{ tables.igrejas.filter(i => i.UNIDADE_COD === adm.id &&
+                    i.IGREJA_TIPO === 5).length }}
+                  </span>
+                </label>
+              </li>
+            </ul>
+          </div>
+          <div class="form-group">
+            <label>Itens a carregar:</label>
+            <ul class="list">
+              <li v-for="op in form.options" :key="op.id">
+                <label>
+                  <input type="checkbox" :value="op.id" v-model="op.active" />
+                  {{ op.label }}
+                </label>
+              </li>
+            </ul>
+          </div>
+          <button
+            @click="loadData"
+            :disabled="app.loading"
+            style="width: 100%; margin-top: 20px"
+          >
+            Carregar
+          </button>
+          <div class="loading-text" v-if="app.loading && !toastMessage">
+            {{ app.loadingText }}
+          </div>
+          <div
+            class="error"
+            v-if="app.errorMessage"
+            v-html="app.errorMessage"
+          ></div>
+          <div
+            v-if="app.serverData"
+            style="margin-top: 20px; word-break: break-all"
+          >
+            <h2>Resposta do servidor:</h2>
+            <pre style="white-space: pre-wrap">{{ app.serverData }}</pre>
+          </div>
+          <div v-if="toastMessage" class="toast">
+            <div class="loader"></div>
+            <span>{{ toastMessage }}</span>
+          </div>
+        </template>
+
+        <pre>{{options}}</pre>
+        <pre>{{tables}}</pre>
+      </div>
+    </div>
+    <script>
+      // Vue app
+      const { createApp, ref, onMounted, watch, computed } = Vue;
+
+      createApp({
+        setup() {
+          const app = ref({
+            wsConnected: false,
+            loading: false,
+            loadingText: '',
+            errorMessage: '',
+            serverData: '',
+          });
+          const form = ref({
+            auth: {
+              username: '',
+              cookies: '',
+              token: '',
+              antixsrftoken: '',
+              page: '',
+            },
+            date1: '',
+            date2: '',
+            options: [
+              { id: 'fluxos', label: 'Fluxos', active: false },
+              { id: 'ofertas', label: 'Ofertas', active: false },
+              { id: 'eventos', label: 'Eventos', active: false },
+              { id: 'dados', label: 'Dados', active: false },
+              { id: 'solicitacoes', label: 'Solicitações', active: false },
+            ],
+            adms: [],
+          });
+
+          const tables = ref({
+            igrejas: [],
+            eventos: [],
+            fluxos: [],
+            ofertas: [],
+          });
+
+          let socket;
+
+          function wsConnect() {
+            socket = io({ transports: ['websocket'] });
+          }
+
+          const toastMessage = ref('');
+          let toastTimeout = null;
+
+          const options = computed(() =>
+            form.value.options.filter((op) => op.active).map((op) => op.id)
+          );
+
+          function showToast(msg) {
+            toastMessage.value = msg;
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+              toastMessage.value = '';
+            }, 2000);
+          }
+
+          function validarCampos() {
+            if (
+              !form.value.date1 ||
+              !form.value.date2 ||
+              !form.value.auth.cookies
+            ) {
+              app.value.errorMessage =
+                'Por favor, preencha todos os campos obrigatórios.';
+              return false;
+            }
+            if (form.value.date2 < form.value.date1) {
+              app.value.errorMessage =
+                'A data final não pode ser menor que a data inicial.';
+              return false;
+            }
+            app.value.errorMessage = '';
+            return true;
+          }
+
+          async function loadData() {
+            try {
+              app.value.loading = true;
+
+              app.value.loadingText = 'Carregando... Por favor, aguarde.';
+              app.value.errorMessage = '';
+              app.value.serverData = '';
+              await carregarIgrejas();
+              // Administrações
+              for (const adm of tables.value.igrejas) {
+                if (!validarCampos()) return;
+                const active = form.value.adms.find(
+                  (a) => a.id === adm.UNIDADE_COD && a.active
+                );
+                if (!active) continue;
+
+                if (adm.IGREJA_TIPO === 3) {
+                  // ADM
+                  app.value.loadingText = `Carregando dados para ${adm.IGREJA_DESC}...`;
+                  app.value.serverData = '';
+
+                  await empresaAlterar({
+                    igreja: adm,
+                    auth: form.value.auth,
+                  });
+
+                  await carregarEventosSecretaria(adm);
+                  await carregarFluxos(adm);
+                  await carregarOfertas(adm);
+                } else if (adm.IGREJA_TIPO === 11) {
+                  // SEC
+                  await empresaAlterar({
+                    igreja: adm,
+                    auth: form.value.auth,
+                  });
+
+                  //   if (form.value.options.includes('dados')) {
+                  //     const { secretaria_cadastro } = await app.dados.access();
+                  //     if (secretaria_cadastro) {
+                  //       console.log('Coletando: ' + sec.IGREJA_DESC);
+                  //       (
+                  //         await Promise.all([
+                  //           app.dados.getDadosMinisterio(),
+                  //           app.dados.getDadosAdministradores(),
+                  //         ])
+                  //       )
+                  //         .flat()
+                  //         .forEach((e) => {
+                  //           msg.tables.dados.push(e);
+                  //         });
+                  //       break;
+                  //     } else {
+                  //       console.log(
+                  //         'Não tem acesso a cadastro secretária: ' + sec.IGREJA_DESC
+                  //       );
+                  //     }
+                  //   }
+                  //   if (form.value.options.includes('solicitacoes')) {
+                  //     msg.tables.solicitacoes = await app.solicitacoes.getSolicitacoes();
+                  //   }
+                }
+              }
+            } catch (error) {
+              app.value.errorMessage = `Erro ao carregar dados: ${error.message}`;
+              return;
+            } finally {
+              app.value.loading = false;
+            }
+          }
+
+          function login() {
+            return new Promise((resolve, reject) => {
+              if (!form.value.auth.cookies) {
+                return reject({
+                  status: false,
+                  message: 'Cookies não informados.',
+                });
+              }
+              app.value.loading = true;
+              socket.emit(
+                'login',
+                { cookies: form.value.auth.cookies },
+                async (data) => {
+                  app.value.loading = false;
+                  if (data && data.status) {
+                    Object.assign(form.value.auth, data.data || {});
+                    await carregarUnidades();
+                    resolve(data);
+                  } else {
+                    reject(data);
+                  }
+                }
+              );
+            });
+          }
+
+          function carregarUnidades() {
+            return new Promise((resolve, reject) => {
+              if (!form.value.auth.cookies) {
+                form.value.adms = [];
+                return resolve(form.value.adms);
+              }
+              socket.emit('getUnidades', form.value.auth, (d) => {
+                form.value.adms = d.data;
+                resolve(d.data);
+              });
+            });
+          }
+
+          function carregarIgrejas() {
+            return new Promise((resolve, reject) => {
+              socket.emit(
+                'getIgrejas',
+                { auth: form.value.auth, empresas: form.value.adms },
+                (d) => {
+                  if (d.status) {
+                    tables.value.igrejas = d.data;
+                    resolve(tables.value.igrejas);
+                  } else {
+                    reject(d);
+                  }
+                }
+              );
+            });
+          }
+
+          function carregarEventosSecretaria(adm) {
+            return new Promise((resolve, reject) => {
+              if (!options.value.includes('eventos')) {
+                return resolve([]);
+              }
+              socket.emit(
+                'carregarEventosSecretaria',
+                {
+                  auth: form.value.auth,
+                  igreja: adm,
+                  date1: form.value.date1,
+                  date2: form.value.date2,
+                },
+                (d) => {
+                  if (d.status) {
+                    tables.value.eventos = d.data;
+                    resolve(tables.value.eventos);
+                  } else {
+                    reject(d);
+                  }
+                }
+              );
+            });
+          }
+
+          function carregarFluxos(empresa) {
+            return new Promise((resolve, reject) => {
+              if (!options.value.includes('fluxos')) {
+                return resolve([]);
+              }
+              socket.emit(
+                'fluxos',
+                {
+                  auth: form.value.auth,
+                  empresa,
+                  date1: form.value.date1,
+                  date2: form.value.date2,
+                },
+                (d) => {
+                  if (d.status) {
+                    tables.value.fluxos = d.data;
+                    console.log(
+                      'Carregando fluxos para: ' + empresa.IGREJA_DESC,
+                      d
+                    );
+                    resolve(tables.value.fluxos);
+                  } else {
+                    reject(d);
+                  }
+                }
+              );
+            });
+          }
+
+          function carregarOfertas(empresa) {
+            return new Promise((resolve, reject) => {
+              if (!options.value.includes('ofertas')) {
+                return resolve([]);
+              }
+              socket.emit(
+                'ofertas',
+                {
+                  auth: form.value.auth,
+                  empresa,
+                  date1: form.value.date1,
+                  date2: form.value.date2,
+                },
+                (d) => {
+                  if (d.status) {
+                    tables.value.ofertas = d.data;
+                    console.log(
+                      'Carregando ofertas para: ' + empresa.IGREJA_DESC,
+                      d
+                    );
+                    resolve(tables.value.ofertas);
+                  } else {
+                    reject(d);
+                  }
+                }
+              );
+
+              // socket.emit(
+              //   'carregarEventosSecretaria',
+              //   { auth: form.value.auth, igreja: adm, date1: form.value.date1, date2: form.value.date2 },
+              //   (d) => {
+              //     if (d.status) {
+              //       tables.value.eventos = d.data;
+              //       resolve(tables.value.eventos);
+              //     } else {
+              //       reject(d);
+              //     }
+              //   }
+              // );
+            });
+          }
+
+          function carregarLocalStorage() {
+            const armazenado =
+              JSON.parse(localStorage.getItem('siga.data')) || {};
+            if (armazenado.auth && armazenado.auth.cookies) {
+              form.value.auth.cookies = armazenado.auth.cookies;
+            }
+            if (armazenado.date1) {
+              form.value.date1 = armazenado.date1;
+            }
+            if (armazenado.date2) {
+              form.value.date2 = armazenado.date2;
+            }
+          }
+
+          function empresaAlterar(payload) {
+            return new Promise((resolve, reject) => {
+              socket.emit('empresaAlterar', payload, (d) => {
+                resolve(d);
+              });
+            });
+          }
+
+          const lastCookies = ref('');
+
+          function onCookiesBlur() {
+            if (form.value.auth.cookies !== lastCookies.value) {
+              lastCookies.value = form.value.auth.cookies;
+              login();
+            }
+          }
+
+          watch(
+            form,
+            (novo) => {
+              localStorage.setItem('siga.data', JSON.stringify(novo));
+            },
+            { deep: true }
+          );
+
+          onMounted(() => {
+            carregarLocalStorage();
+            wsConnect();
+            socket.on('connected', async (data) => {
+              console.log('Conectado ao WebSocket:', data);
+              app.value.wsConnected = true;
+              await login();
+            });
+            socket.on('disconnect', () => {
+              console.log('Desconectado do WebSocket');
+              app.value.wsConnected = false;
+            });
+          });
+
+          return {
+            form,
+            app,
+            toastMessage,
+            onCookiesBlur,
+            loadData,
+            tables,
+            options,
+          };
+        },
+      }).mount('#app');
+    </script>
+  </body>
+</html>
