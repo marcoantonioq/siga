@@ -19,6 +19,7 @@ export async function empresas(auth) {
         description: optionMatch[2].trim(),
         active: false,
         loading: false,
+        igrejas: [],
       });
     }
   }
