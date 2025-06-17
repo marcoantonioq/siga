@@ -1,63 +1,16 @@
-import express from 'express';
-import { searchDataAll } from '../../siga.js';
+import { createServer } from 'http';
+import { createExpressApp } from './app.js';
+import { setupWebSocket } from './websocket.js';
 
-export const app = express();
-const processingClients = {};
+export function startServer(port = 3000) {
+  const app = createExpressApp();
+  const server = createServer(app);
+  const wss = setupWebSocket(server);
 
-app.use(express.json({ limit: '1gb' }));
+  server.listen(port, () => {
+    console.log(`Servidor HTTP/Express rodando na porta ${port}`);
+    console.log(`WebSocket ativo na mesma porta`);
+  });
 
-// @ts-ignore
-app.post('/siga', async (req, res) => {
-  const { date1, date2, filter, cookies, options } = req.body;
-  if (!(date1 && date2 && cookies)) {
-    return res
-      .status(400)
-      .json({ error: 'Configurações ausentes no corpo da requisição.' });
-  }
-
-  let userCookie = '';
-  let cacheKey = '';
-
-  try {
-    userCookie =
-      cookies.match(/(;| )(user)=([^;]*)/i)?.[3] ||
-      Math.random().toString(36).slice(2);
-    if (!userCookie) throw new Error('Usuário cookie inválido!');
-
-    cacheKey = `siga.${userCookie}`;
-    console.log('cache id:', cacheKey);
-
-    const cachedEntry = processingClients[cacheKey];
-
-    if (cachedEntry) {
-      // Se o cache ainda for válido, retorna o resultado em cache
-      return res.json(await cachedEntry.promise);
-    }
-
-    const requestPromise = (async () => {
-      const result = await searchDataAll(date1, date2, filter, cookies, '', options );
-      return result;
-    })();
-
-    // Armazena a promessa e configura o tempo de expiração
-    processingClients[cacheKey] = {
-      promise: requestPromise,
-    };
-
-    const msg = await requestPromise;
-    msg.success = true;
-
-    // Define um timeout de 60s para limpar o cache. Verificar na interface do usuário se o sleep é menor
-    setTimeout(() => {
-      delete processingClients[cacheKey];
-    }, 4 * 60 * 1000);
-
-    res.json(msg);
-  } catch (error) {
-    console.log('Erro ao processar:', error);
-    if (processingClients[cacheKey]) {
-      delete processingClients[cacheKey];
-    }
-    res.status(200).json({ success: false, errors: [error.message] });
-  }
-});
+  return { app, server, wss };
+}

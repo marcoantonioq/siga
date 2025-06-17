@@ -164,7 +164,7 @@
 
           const optionLabels = {
             fluxos: 'Fluxos',
-            fluxoOfertas: 'Ofertas',
+            ofertas: 'Ofertas',
             eventos: 'Eventos',
             dados: 'Dados',
             solicitacoes: 'Solicitações',
@@ -195,7 +195,7 @@
           async function carregarDados() {
             if (!validarCampos()) return;
             loading.value = true;
-            loadingText.value = 'Carregando... Por favor, aguarde.';
+            loadingText.value = 'Servidor Offline! Por favor, aguarde...';
             salvarLocalStorage();
             attemptCount.value = 0;
 
