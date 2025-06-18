@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import { createExpressApp } from './app.js';
 import { setupWebSocket } from './websocket.js';
 
-export function startServer(port = 3000) {
+export function startServer(port = 3002) {
   const app = createExpressApp();
   const server = createServer(app);
   const wss = setupWebSocket(server);

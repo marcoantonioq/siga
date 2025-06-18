@@ -1,4 +1,3 @@
 import { startServer } from './infra/express/index.js';
 
-const { app } = startServer(3001)
-
+const { app } = startServer(3002);
