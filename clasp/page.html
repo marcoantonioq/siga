@@ -68,7 +68,7 @@
     button:hover {
       background-color: #2980b9;
     }
-    
+
     button:disabled {
       background-color: #b0c4de;
       cursor: not-allowed;
@@ -128,7 +128,7 @@
       <div class="form-group">
         <label>Itens a carregar:</label>
         <div>
-          <div v-for="(label, opt) in optionLabels" :key="opt" >
+          <div v-for="(label, opt) in optionLabels" :key="opt">
             <label>
               <input type="checkbox" :value="opt" v-model="data.options" />
               {{ label }}
@@ -160,6 +160,7 @@
             filter: '',
             cookies: '',
             options: [],
+            options: [],
           });
 
           const optionLabels = {
@@ -176,39 +177,63 @@
           }
 
           function salvarLocalStorage() {
-            localStorage.setItem('siga.data', JSON.stringify(data.value));
+            function carregarLocalStorage() {
+              const armazenado = JSON.parse(localStorage.getItem('siga.data')) || {};
+              data.value = { ...data.value, ...armazenado };
+            }
+
+            function salvarLocalStorage() {
+              localStorage.setItem('siga.data', JSON.stringify(data.value));
+            }
           }
 
           function validarCampos() {
-            if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
-              errorMessage.value = 'Por favor, preencha todos os campos obrigatórios.';
-              return false;
+            function validarCampos() {
+              if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
+                errorMessage.value = 'Por favor, preencha todos os campos obrigatórios.';
+                errorMessage.value = 'Por favor, preencha todos os campos obrigatórios.';
+                return false;
+              }
+              errorMessage.value = '';
+              return true;
             }
-            errorMessage.value = '';
-            return true;
           }
 
+          function esperar(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          }
           function esperar(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
           }
 
           async function carregarDados() {
             if (!validarCampos()) return;
-            loading.value = true;
-            loadingText.value = 'Carregando... Por favor, aguarde.';
-            salvarLocalStorage();
-            attemptCount.value = 0;
+            async function carregarDados() {
+              if (!validarCampos()) return;
+              loading.value = true;
+              loadingText.value = 'Carregando... Por favor, aguarde.';
+              salvarLocalStorage();
+              attemptCount.value = 0;
 
-            while (attemptCount.value < maxAttempts) {
-              try {
-                attemptCount.value++;
-                await tentarCarregarDados();
-                return;
-              } catch (error) {
-                loadingText.value = `Tentativa ${attemptCount.value + 1} de ${maxAttempts}...`;
-                console.log(loadingText.value, error);
-                await esperar(2 * 60 * 1000);
+              while (attemptCount.value < maxAttempts) {
+                try {
+                  attemptCount.value++;
+                  await tentarCarregarDados();
+                  return;
+                  attemptCount.value++;
+                  await tentarCarregarDados();
+                  return;
+                } catch (error) {
+                  loadingText.value = `Tentativa ${attemptCount.value + 1} de ${maxAttempts}...`;
+                  console.log(loadingText.value, error);
+                  await esperar(2 * 60 * 1000);
+                  loadingText.value = `Tentativa ${attemptCount.value + 1} de ${maxAttempts}...`;
+                  console.log(loadingText.value, error);
+                  await esperar(2 * 60 * 1000);
+                }
               }
+              errorMessage.value = 'Erro ao carregar dados após várias tentativas.';
+              resetarLoading();
             }
             errorMessage.value = 'Erro ao carregar dados após várias tentativas.';
             resetarLoading();
@@ -220,53 +245,79 @@
             const payload = { ...data.value, options: opcoes };
             console.log("Payload enviado: ", payload);
 
-            return new Promise((resolve, reject) => {
-              google.script.run
-                .withSuccessHandler(res => tratarResposta(res, resolve, reject))
-                .withFailureHandler(err => tratarErro(err, resolve, reject))
-                .baixarSiga(payload);
-            });
+            function tentarCarregarDados() {
+              let opcoes = Array.isArray(data.value.options) ? [...data.value.options] : [];
+              if (!opcoes.includes('igrejas')) opcoes.unshift('igrejas');
+              const payload = { ...data.value, options: opcoes };
+              console.log("Payload enviado: ", payload);
+
+              return new Promise((resolve, reject) => {
+                google.script.run
+                  .withSuccessHandler(res => tratarResposta(res, resolve, reject))
+                  .withFailureHandler(err => tratarErro(err, resolve, reject))
+                  .withSuccessHandler(res => tratarResposta(res, resolve, reject))
+                  .withFailureHandler(err => tratarErro(err, resolve, reject))
+                  .baixarSiga(payload);
+              });
+            }
           }
 
           function tratarResposta(res, resolve, reject) {
             if (res.success) {
               resetarLoading();
-              google.script.host.close();
-              resolve(res);
-            } else {
-              errorMessage.value = res.errors ? res.errors.join('<br>\n') : '';
-              reject(new Error(errorMessage.value));
+              function tratarResposta(res, resolve, reject) {
+                if (res.success) {
+                  resetarLoading();
+                  google.script.host.close();
+                  resolve(res);
+                  resolve(res);
+                } else {
+                  errorMessage.value = res.errors ? res.errors.join('<br>\n') : '';
+                  errorMessage.value = res.errors ? res.errors.join('<br>\n') : '';
+                  reject(new Error(errorMessage.value));
+                }
+              }
             }
-          }
 
-          function tratarErro(err, resolve, reject) {
-            console.log('Error::: ', err);
-            if (['autorização', 'permissão'].some(t => String(err).includes(t))) {
-              errorMessage.value = 'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
-            } else {
-              errorMessage.value = err;
-            }
-            resetarLoading();
-            reject(new Error(errorMessage.value));
-          }
+            function tratarErro(err, resolve, reject) {
+              console.log('Error::: ', err);
+              if (['autorização', 'permissão'].some(t => String(err).includes(t))) {
+                errorMessage.value = 'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
+                function tratarErro(err, resolve, reject) {
+                  console.log('Error::: ', err);
+                  if (['autorização', 'permissão'].some(t => String(err).includes(t))) {
+                    errorMessage.value = 'Erro de permissão ao executar o script. Verifique se você está logado na conta correta ou tente abrir em uma janela anônima ou outro perfil.';
+                  } else {
+                    errorMessage.value = err;
+                    errorMessage.value = err;
+                  }
+                  resetarLoading();
+                  resetarLoading();
+                  reject(new Error(errorMessage.value));
+                }
+              }
 
-          function resetarLoading() {
-            loading.value = false;
-            loadingText.value = '';
-          }
+              function resetarLoading() {
+                function resetarLoading() {
+                  loading.value = false;
+                  loadingText.value = '';
+                }
+              }
 
-          carregarLocalStorage();
+              carregarLocalStorage();
+              carregarLocalStorage();
 
-          return {
-            loading,
-            loadingText,
-            loadData: carregarDados,
-            data,
-            errorMessage,
-            optionLabels,
-          };
-        },
-      }).mount('#app');
+              return {
+                loading,
+                loadingText,
+                loadData: carregarDados,
+                loadData: carregarDados,
+                data,
+                errorMessage,
+                optionLabels,
+              };
+            },
+          }).mount('#app');
     </script>
 </body>
 

@@ -18,7 +18,7 @@ export class IgrejasRepo {
     this.#client = client;
   }
 
-  async getIgrejas() {
+  async getUnidades() {
     const empresas = [];
     const igrejas = [];
     const optgroupRegex = /<optgroup label="([^"]+)">([\s\S]*?)<\/optgroup>/g;

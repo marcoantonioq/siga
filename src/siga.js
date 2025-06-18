@@ -21,7 +21,7 @@ export async function searchDataAll(
   filter,
   cookies,
   username = '.',
-  options = ['igrejas', 'fluxos', 'eventos', 'dados', 'solicitacoes'] // fluxoOfertas,
+  options = ['igrejas', 'fluxos', 'eventos', 'dados', 'solicitacoes'] // ofertas,
 ) {
   const client = new HTTPClient({
     cookie: cookies,
@@ -57,7 +57,7 @@ export async function searchDataAll(
 
   console.log('Buscar informações: ', msg.settings);
 
-  (await app.igrejas.getIgrejas()).map((e) => msg.tables.igrejas.push(e));
+  (await app.igrejas.getUnidades()).map((e) => msg.tables.igrejas.push(e));
 
   const filterRegex = new RegExp(filter, 'i');
 
@@ -85,7 +85,7 @@ export async function searchDataAll(
     }
 
     let ofertas = [];
-    if (options.includes('fluxoOfertas')) {
+    if (options.includes('ofertas')) {
       ofertas = await app.fluxos.getOfertas(date1, date2);
     }
     if (options.includes('fluxos')) {

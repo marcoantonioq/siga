@@ -10,6 +10,7 @@
  * @property {number} UNIDADE_COD - Código da unidade
  * @property {number} MEMBROS - Membros
  * @property {Date} CREATED - Date
+ * @property {boolean} ACTIVE - Indica se a igreja está ativa
  */
 
 export class Igreja {
@@ -29,6 +30,7 @@ export class Igreja {
     UNIDADE_COD = 0,
     MEMBROS = 0,
     CREATED = new Date(),
+    ACTIVE = true,
   } = {}) {
     Object.assign(this, {
       IGREJA,
@@ -42,6 +44,7 @@ export class Igreja {
       MEMBROS,
       CREATED,
       UPDATED: new Date(),
+      ACTIVE,
     });
   }
 
