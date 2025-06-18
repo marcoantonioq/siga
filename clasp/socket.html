@@ -86,6 +86,26 @@
       cursor: not-allowed;
     }
 
+    .success {
+      background-color: #27ae60;
+    }
+
+    .success:hover {
+      background-color: #219653;
+    }
+
+    .error {
+      background-color: #e74c3c;
+    }
+
+    .error:hover {
+      background-color: #c0392b;
+    }
+
+    .center {
+      text-align: center;
+    }
+
     .loader {
       border-top: 4px solid #3498db;
       border-radius: 50%;
@@ -197,38 +217,42 @@
         <div class="date-range-row">
           <div class="form-group">
             <label>Data Inicial*:</label>
-            <input type="date" v-model="form.date1" />
+            <input type="date" v-model="form.date1" :disabled="app.loading" />
           </div>
           <div class="form-group">
             <label>Data Final*:</label>
-            <input type="date" v-model="form.date2" :min="form.date1" />
+            <input type="date" v-model="form.date2" :min="form.date1" :disabled="app.loading" />
           </div>
         </div>
 
         <div class="form-group">
           <label>Cookies*:</label>
           <div class="flex">
-            <input type="text" v-model="form.auth.cookies" @blur="onCookiesBlur" placeholder="Digite os cookies" />
+            <input type="text" v-model="form.auth.cookies" @blur="onCookiesBlur" placeholder="Digite os cookies"
+              :disabled="app.loading" />
             <span class="spinner" v-show="app.loadingTable.login"></span>
           </div>
         </div>
 
         <div class="form-group" v-if="form.adms.length">
           <label>Unidades:</label>
+          <input type="text" v-model="admFilter" placeholder="Filtrar unidades..." :disabled="app.loading"
+            style="margin-bottom: 8px;" />
           <table>
             <thead>
               <tr>
                 <th>
-                  <input type="checkbox" @change="form.adms.forEach(a => a.active = $event.target.checked)" />
+                  <input type="checkbox" @change="form.adms.forEach(a => a.active = $event.target.checked)"
+                    :disabled="app.loading" />
                 </th>
                 <th>Descrição</th>
                 <th>Igrejas</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="adm in form.adms" :key="adm.id" @click="adm.active = !adm.active" style="cursor: pointer">
+              <tr v-for="adm in filteredAdms" :key="adm.id" @click="adm.active = !adm.active" style="cursor: pointer">
                 <td>
-                  <input type="checkbox" v-model="adm.active" @click.stop />
+                  <input type="checkbox" v-model="adm.active" @click.stop :disabled="app.loading" />
                 </td>
                 <td>{{ adm.description }}</td>
                 <td>
@@ -248,7 +272,8 @@
             <thead>
               <tr>
                 <th>
-                  <input type="checkbox" @change="form.options.forEach(o => o.active = $event.target.checked)" />
+                  <input type="checkbox" @change="form.options.forEach(o => o.active = $event.target.checked)"
+                    :disabled="app.loading" />
                 </th>
                 <th>Item</th>
                 <th>Status</th>
@@ -257,13 +282,14 @@
             <tbody>
               <tr v-for="op in form.options" :key="op.id" @click="op.active = !op.active" style="cursor: pointer">
                 <td>
-                  <input type="checkbox" v-model="op.active" @click.stop />
+                  <input type="checkbox" v-model="op.active" @click.stop :disabled="app.loading" />
                 </td>
                 <td>{{ op.label }}</td>
                 <td>
                   <div class="flex">
                     <span v-if="app.loadingTable[op.id]" class="spinner"></span>
-                    <button v-show="tables[op.id].length" type="button" @click.stop="copy(tables[op.id])">
+                    <button v-show="tables[op.id].length" type="button" @click.stop="copy(tables[op.id])"
+                      :disabled="app.loading">
                       Copiar {{tables[op.id].length}}
                     </button>
                   </div>
@@ -275,7 +301,8 @@
                 </td>
                 <td>Igrejas</td>
                 <td>
-                  <button v-show="tables.igrejas.length" type="button" @click="copy(tables.igrejas)">
+                  <button v-show="tables.igrejas.length" type="button" @click="copy(tables.igrejas)"
+                    :disabled="app.loading">
                     Copiar
                   </button>
                 </td>
@@ -284,11 +311,12 @@
           </table>
         </div>
 
-        <button @click="loadData" :disabled="app.loading" style="background-color: #27ae60">
+        <button @click="loadData" :disabled="app.loading" class="success">
           Carregar
         </button>
 
       </template>
+      <!-- <pre>{{form.auth}}</pre> -->
     </div>
   </div>
   <script>
@@ -349,6 +377,18 @@
             show.warn('Data final não pode ser anterior à data inicial.');
             return false;
           }
+          if (!form.value.adms.some((adm) => adm.active)) {
+            show.warn('Selecione pelo menos uma unidade.');
+            return false;
+          }
+          if (!options.value.length) {
+            show.warn('Selecione pelo menos um item a carregar.');
+            return false;
+          }
+          if (!form.value.auth.cookies || form.value.auth.cookies?.length < 10) {
+            show.warn('Cookies inválidos ou muito curtos.');
+            return false;
+          }
           return true;
         }
 
@@ -392,7 +432,7 @@
                     });
                     show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await Promise.all([
-                      await carregarEventosSecretaria(igreja),
+                      await carregarEventos(igreja),
                       await carregarFluxos(igreja),
                     ])
                     await carregarOfertas(igreja);
@@ -494,146 +534,109 @@
           });
         }
 
-        function carregarUnidades() {
-          return new Promise((res) => {
-            socket.emit('getUnidades', form.value.auth, (d) => {
-              form.value.adms = d.data.map((a) => ({ ...a, active: false }));
-              res();
+        function emitir(nome, payload, tabela, loadingKey) {
+          return new Promise((resolve, reject) => {
+            if (loadingKey) app.value.loadingTable[loadingKey] = true;
+            socket.emit(nome, payload, (res) => {
+              if (loadingKey) app.value.loadingTable[loadingKey] = false;
+              if (res?.status) {
+                if (tabela) tables.value[tabela] = res.data;
+                resolve(res);
+              } else {
+                reject(res?.message || 'Erro desconhecido');
+              }
+            });
+          });
+        }
+
+        function empresaAlterar(payload) {
+          return new Promise((res) => socket.emit('empresaAlterar', payload, res));
+        }
+
+        async function carregarUnidades() {
+          return new Promise((resolve, reject) => {
+            socket.emit('getUnidades', form.value.auth, (res) => {
+              if (res?.data) {
+                form.value.adms = res.data.map((a) => ({ ...a, active: false }));
+                resolve();
+              } else {
+                reject('Erro ao carregar unidades');
+              }
             });
           });
         }
 
         function carregarIgrejas(empresas = form.value.adms) {
-          return new Promise((res, rej) => {
-            app.value.loadingTable.igrejas = true;
-            socket.emit(
-              'getIgrejas',
-              { auth: form.value.auth, empresas },
-              (d) => {
-                app.value.loadingTable.igrejas = false;
-                if (d.status) {
-                  tables.value.igrejas = d.data;
-                  form.value.adms.forEach((adm) => {
-                    adm.igrejas = tables.value.igrejas.filter(
-                      (i) => i.UNIDADE_COD === adm.id
-                    );
-                  });
-                  res();
-                } else rej(d.message);
+          app.value.loadingTable.igrejas = true;
+          return new Promise((resolve, reject) => {
+            socket.emit('getIgrejas', { auth: form.value.auth, empresas }, (res) => {
+              app.value.loadingTable.igrejas = false;
+              if (res?.status) {
+                tables.value.igrejas = res.data;
+                form.value.adms.forEach((adm) => {
+                  adm.igrejas = res.data.filter((i) => i.UNIDADE_COD === adm.id);
+                });
+                resolve();
+              } else {
+                reject(res?.message || 'Erro ao carregar igrejas');
               }
-            );
+            });
           });
         }
 
-        function empresaAlterar(payload) {
-          return new Promise((res) =>
-            socket.emit('empresaAlterar', payload, (d) => res(d))
-          );
+        function carregarEventos(adm) {
+          if (!options.value.includes('eventos')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            igreja: { ...adm, igrejas: [] },
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          return emitir('eventos', payload, 'eventos', 'eventos');
         }
-        function carregarEventosSecretaria(adm) {
-          return new Promise((res, rej) => {
-            if (!options.value.includes('eventos')) return res();
-            app.value.loadingTable.eventos = true;
-            socket.emit(
-              'carregarEventosSecretaria',
-              {
-                auth: form.value.auth,
-                igreja: { ...adm, igrejas: [] },
-                date1: form.value.date1,
-                date2: form.value.date2,
-              },
-              (d) => {
-                app.value.loadingTable.eventos = false;
-                d.status
-                  ? ((tables.value.eventos = d.data), res())
-                  : rej(d.message);
-              }
-            );
-          });
-        }
+
         function carregarFluxos(adm) {
-          return new Promise((res, rej) => {
-            if (!options.value.includes('fluxos')) return res();
-            app.value.loadingTable.fluxos = true;
-            socket.emit(
-              'fluxos',
-              {
-                auth: form.value.auth,
-                empresa: { ...adm, igrejas: [] },
-                date1: form.value.date1,
-                date2: form.value.date2,
-              },
-              (d) => {
-                app.value.loadingTable.fluxos = false;
-                d.status
-                  ? ((tables.value.fluxos = d.data), res())
-                  : rej(d.message);
-              }
-            );
-          });
+          if (!options.value.includes('fluxos')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            empresa: { ...adm, igrejas: [] },
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          return emitir('fluxos', payload, 'fluxos', 'fluxos');
         }
+
         function carregarOfertas(adm) {
-          return new Promise((res, rej) => {
-            if (!options.value.includes('ofertas')) return res();
-            app.value.loadingTable.ofertas = true;
-            socket.emit(
-              'ofertas',
-              {
-                auth: form.value.auth,
-                empresa: { ...adm, igrejas: [] },
-                date1: form.value.date1,
-                date2: form.value.date2,
-              },
-              (d) => {
-                app.value.loadingTable.ofertas = false;
-                d.status
-                  ? ((tables.value.ofertas = d.data), res())
-                  : rej(d.message);
-              }
-            );
-          });
+          if (!options.value.includes('ofertas')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            empresa: { ...adm, igrejas: [] },
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          return emitir('ofertas', payload, 'ofertas', 'ofertas');
         }
+
         function carregarDados(adm) {
-          return new Promise((res, rej) => {
-            if (!options.value.includes('dados')) return res();
-            app.value.loadingTable.dados = true;
-            socket.emit(
-              'dados',
-              {
-                auth: form.value.auth,
-                empresa: { ...adm, igrejas: [] },
-                date1: form.value.date1,
-                date2: form.value.date2,
-              },
-              (d) => {
-                app.value.loadingTable.dados = false;
-                d.status
-                  ? ((tables.value.dados = d.data), res())
-                  : rej(d.message);
-              }
-            );
-          });
+          if (!options.value.includes('dados')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            empresa: { ...adm, igrejas: [] },
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          return emitir('dados', payload, 'dados', 'dados');
         }
+
         function carregarSolicitacoes(adm) {
-          return new Promise((res, rej) => {
-            if (!options.value.includes('solicitacoes')) return res();
-            app.value.loadingTable.solicitacoes = true;
-            socket.emit(
-              'solicitacoes',
-              {
-                auth: form.value.auth,
-                empresa: adm,
-                date1: form.value.date1,
-                date2: form.value.date2,
-              },
-              (d) => {
-                app.value.loadingTable.solicitacoes = false;
-                d.status
-                  ? ((tables.value.solicitacoes = d.data), res())
-                  : rej(d.message);
-              }
-            );
-          });
+          if (!options.value.includes('solicitacoes')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            empresa: adm,
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          return emitir('solicitacoes', payload, 'solicitacoes', 'solicitacoes');
         }
 
         function carregarLocalStorage() {
@@ -676,6 +679,22 @@
             });
         }
 
+        const admFilter = ref('');
+        function normalize(str) {
+          return (str || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s]/gi, '')
+            .toLowerCase();
+        }
+        const filteredAdms = computed(() =>
+          !admFilter.value
+            ? form.value.adms
+            : form.value.adms.filter(adm =>
+              normalize(adm.description).includes(normalize(admFilter.value))
+            )
+        );
+
         watch(
           form,
           (v) => localStorage.setItem('siga.data', JSON.stringify(v)),
@@ -695,6 +714,8 @@
           loadData,
           onCookiesBlur,
           copy,
+          admFilter,
+          filteredAdms,
         };
       },
     }).mount('#app');

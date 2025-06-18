@@ -4,7 +4,6 @@ import { Evento } from '../../../../core/Evento.js';
 
 export async function carregarEventosSecretaria(values) {
   const { auth, igreja, date1, date2 } = values;
-  console.log('Solicitação carregarEvento:', igreja, date1, date2);
   const eventos = [];
   try {
     const response = await ky.post(
@@ -17,11 +16,11 @@ export async function carregarEventosSecretaria(values) {
         },
         json: {
           codigoTipoEvento: null,
-          codigoEmpresa: String(igreja.UNIDADE_COD),
+          codigoEmpresa: igreja.UNIDADE_COD,
           codigoEstabelecimento: null,
           data1: date1.split('-').reverse().join('/'),
           data2: date2.split('-').reverse().join('/'),
-          listaStatus: '4,3',
+          listaStatus: '3,4',
           config: {
             sEcho: 1,
             iDisplayStart: 0,
@@ -34,10 +33,10 @@ export async function carregarEventosSecretaria(values) {
       }
     );
     const code = response.status;
-    const data = await response.text();
-    const result = JSON.parse(data);
-    if (result?.d?.aaData && code == 200) {
-      result.d.aaData
+    const data = await response.json();
+
+    if (data?.d?.aaData && code == 200) {
+      data.d.aaData
         .map(([DATA, SEMANA, HORA, GRUPO, IGREJA, , STATUS, ID]) => {
           return Evento.create({
             EVENTO: 'Secretaria',
@@ -59,5 +58,23 @@ export async function carregarEventosSecretaria(values) {
   } catch (erro) {
     console.warn('Erro ao obter Eventos: ', erro);
   }
+
   return eventos;
 }
+
+// carregarEventosSecretaria({
+//   auth: {
+//     cookies:
+//       '',
+//     antixsrftoken: '',
+//   },
+//   igreja: { UNIDADE_COD: '126' },
+//   date1: '2025-04-01',
+//   date2: '2025-06-01',
+// })
+//   .then((eventos) => {
+//     console.log('Eventos carregados:', eventos);
+//   })
+//   .catch((error) => {
+//     console.error('Erro ao carregar eventos:', error);
+//   });
