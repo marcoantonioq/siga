@@ -216,6 +216,7 @@ async function getColetas(auth, igreja, date1, date2) {
         headers: headersBase,
         body: form,
         retry: { limit: 5 },
+        timeout: 60000,
       });
 
       const excelResp = await ky.post(
@@ -472,6 +473,7 @@ async function getOfertas(auth, igreja, date1, date2) {
         headers: headersBase,
         body: form,
         retry: { limit: 5 },
+        timeout: 60000,
       });
 
       const excelResp = await request.post(

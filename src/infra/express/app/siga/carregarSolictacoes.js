@@ -44,6 +44,8 @@ export async function carregarSolicitacoes({ auth }) {
             'Content-Type': 'application/json',
           },
           json: body,
+          retry: { limit: 5 },
+          timeout: 60000,
         });
         const data = await response.json();
         if (Array.isArray(data.dados)) {

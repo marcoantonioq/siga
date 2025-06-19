@@ -84,6 +84,8 @@ export async function* getMinisterios(token, pag = 100) {
           filtro: { ativo: true },
           paginacao: { paginaAtual, quantidadePorPagina: pag },
         },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
     );
     const json = await res.json();
@@ -115,6 +117,8 @@ export async function* getAdministradores(token, pag = 100) {
           filtro: { ativo: true },
           paginacao: { paginaAtual, quantidadePorPagina: pag },
         },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
     );
     const json = await res.json();
@@ -178,6 +182,8 @@ async function detalhesItem(item, token, grupo, urlBase) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      timeout: 60000,
+      retry: { limit: 5 },
     });
     const detalhes = await res.json();
     // process.stdout.write(grupo[0].toLowerCase());

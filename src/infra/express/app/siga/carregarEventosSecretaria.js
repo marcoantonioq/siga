@@ -30,6 +30,8 @@ export async function carregarEventosSecretaria(values) {
             sSortDir: 'asc',
           },
         },
+        retry: { limit: 5 },
+        timeout: 60000,
       }
     );
     const code = response.status;
