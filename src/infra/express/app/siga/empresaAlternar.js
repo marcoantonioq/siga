@@ -12,14 +12,15 @@ export async function empresaAlterar(values) {
       .post(
         'https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetencias',
         {
-          retry: 5,
           json: { codigoEmpresa: String(values.igreja.UNIDADE_COD) },
           headers: {
             Accept: 'application/json, text/javascript, */*; q=0.01',
             Cookie: values.auth.cookies,
             __antixsrftoken: values.auth.antixsrftoken,
           },
-        }
+          retry: { limit: 5 },
+          timeout: 60000,
+        },
       )
       .json();
 
@@ -44,6 +45,8 @@ export async function empresaAlterar(values) {
         Origin: 'https://siga.congregacao.org.br',
         Referer: 'https://siga.congregacao.org.br/SIS/SIS99908.aspx?f_inicio=S',
       },
+      retry: { limit: 10 },
+      timeout: 60000,
     });
   } catch (error) {
     console.error('Erro ao alterar empresa:', error);

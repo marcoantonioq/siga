@@ -5,14 +5,27 @@ import { igrejas } from './app/siga/igrejas.js';
 import { empresaAlterar } from './app/siga/empresaAlternar.js';
 import { carregarEventosSecretaria } from './app/siga/carregarEventosSecretaria.js';
 import { carregarFluxo, carregarOfertas } from './app/siga/fluxos.js';
+import { carregarDados } from './app/siga/carregarDados.js';
+import { carregarSolicitacoes } from './app/siga/carregarSolictacoes.js';
 
-const createResponse = (data) => {
-  return {
-    status: true,
-    message: '',
-    data: {},
-    timestamp: new Date().toISOString(),
-  };
+const createResponse = (data = {}) => ({
+  status: true,
+  message: '',
+  data,
+  timestamp: new Date().toISOString(),
+});
+
+const handleRequest = (socket, event, fn) => {
+  socket.on(event, async (payload, callback) => {
+    const response = createResponse();
+    try {
+      response.data = await fn(payload);
+    } catch (error) {
+      response.status = false;
+      response.message = error.message;
+    }
+    callback(response);
+  });
 };
 
 export function setupWebSocket(server) {
@@ -22,71 +35,35 @@ export function setupWebSocket(server) {
     socket.emit('connected', { success: true, id: socket.id });
 
     socket.on('login', async (data, callback) => {
-      const response = createResponse();
-      response.status = false;
-      response.data = {
+      const response = createResponse({
         cookies: '',
         username: '',
         token: '',
-      };
+      });
+      response.status = false;
 
       try {
-        if (data.cookies) {
-          const { data: auth } = await login(data.cookies);
-          response.status = true;
-          response.data = auth;
-          response.message = auth.message || 'Login realizado com sucesso.';
-        } else {
-          response.message = 'Cookies não informados.';
-        }
+        if (!data.cookies) throw new Error('Cookies não informados.');
+
+        const { data: auth } = await login(data.cookies);
+        response.status = true;
+        response.data = auth;
+        response.message = auth.message || 'Login realizado com sucesso.';
       } catch (error) {
         response.message = error.message;
       }
+
       callback(response);
     });
 
-    socket.on('getUnidades', async (auth, callback) => {
-      const response = createResponse(auth);
-      response.data = await empresas(auth);
-      response.status = true;
-      callback(response);
-    });
-
-    socket.on('getIgrejas', async (values, callback) => {
-      const response = createResponse(values);
-      response.data = await igrejas(values);
-      response.status = true;
-      callback(response);
-    });
-
-    socket.on('empresaAlterar', async (payload, callback) => {
-      const response = createResponse();
-      response.data = await empresaAlterar(payload);
-      response.status = true;
-      callback(response);
-    });
-
-    socket.on('carregarEventosSecretaria', async (payload, callback) => {
-      const response = createResponse();
-      response.data = await carregarEventosSecretaria(payload);
-      response.status = true;
-      callback(response);
-    });
-
-    socket.on('fluxos', async (payload, callback) => {
-      const response = createResponse();
-      response.data = await carregarFluxo(payload);
-      response.status = true;
-      callback(response);
-    });
-
-    socket.on('ofertas', async (payload, callback) => {
-      const response = createResponse();
-      response.data = await carregarOfertas(payload);
-      response.status = true;
-      callback(response);
-    });
-
+    handleRequest(socket, 'getUnidades', empresas);
+    handleRequest(socket, 'getIgrejas', igrejas);
+    handleRequest(socket, 'empresaAlterar', empresaAlterar);
+    handleRequest(socket, 'eventos', carregarEventosSecretaria);
+    handleRequest(socket, 'fluxos', carregarFluxo);
+    handleRequest(socket, 'ofertas', carregarOfertas);
+    handleRequest(socket, 'dados', carregarDados);
+    handleRequest(socket, 'solicitacoes', carregarSolicitacoes);
   });
 
   return io;

@@ -11,6 +11,6 @@ RUN git clone https://github.com/marcoantonioq/siga.git . && npm install
 
 RUN chmod +x /app/start.sh
 
-EXPOSE 3000
+EXPOSE 3009
 
 CMD ["./start.sh"]
