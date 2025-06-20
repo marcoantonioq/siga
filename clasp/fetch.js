@@ -58,6 +58,15 @@ function handleFetchError(error, msg) {
   console.error(message);
 }
 
+function GoogleSheets(msg) {
+  if (msg?.tables) {
+    msg.tables = JSON.parse(msg.tables)
+    criarTabelasNoGoogleSheets(msg);
+  } else {
+    console.error('Nenhuma tabela encontrada no objeto msg:', msg);
+  }
+}
+
 function criarTabelasNoGoogleSheets(msg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
