@@ -19,7 +19,7 @@ const handleRequest = (socket, event, fn) => {
   socket.on(event, async (payload, callback) => {
     const response = createResponse();
     try {
-      response.data = await fn(payload);
+      response.data = JSON.stringify(await fn(payload));
     } catch (error) {
       response.status = false;
       response.message = error.message;
@@ -47,7 +47,7 @@ export function setupWebSocket(server) {
 
         const { data: auth } = await login(data.cookies);
         response.status = true;
-        response.data = auth;
+        response.data = JSON.stringify(auth);
         response.message = auth.message || 'Login realizado com sucesso.';
       } catch (error) {
         response.message = error.message;

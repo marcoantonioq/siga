@@ -61,7 +61,9 @@ function handleFetchError(error, msg) {
 function criarTabelasNoGoogleSheets(msg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  for (const tableName in msg.tables) {
+  console.log("Atualizando planilha: ", msg)
+
+  for (const tableName in msg?.tables || []) {
     console.log("Dados da tabela:", tableName, msg.tables[tableName].length);
     
     const data = msg.tables[tableName];
@@ -93,8 +95,7 @@ function criarTabelasNoGoogleSheets(msg) {
 
 function showPage() {
   const html = HtmlService.createHtmlOutputFromFile('page')
-    .setWidth(400)
+    .setWidth(450)
     .setHeight(650);
-
   SpreadsheetApp.getUi().showModalDialog(html, 'Carregar Dados');
 }
