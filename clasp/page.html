@@ -578,27 +578,32 @@
               async (values) => {
                 app.value.loading = false;
                 toast.hideToast();
-                const data = JSON.parse(values.data || '{}');
-                console.log("Dados> ", data);
-
-                if (data.page.includes('Lembrar meu email/usuário')) {
-                  rej('A página de login mudou, por favor atualize os cookies.');
-                } else if (values.status) {
-                  app.value.loadingTable.login = false;
-                  Object.assign(form.value.auth, data);
-                  show.success('Login realizado com sucesso!', 2000);
-                  console.log("Login realizado com sucesso:", form.value.auth);
-                  if (tables.value.igrejas) {
-                    await carregarUnidades();
-                    console.log('Carregando igrejas...');
-                    await carregarIgrejas();
+                try {
+                  const data = JSON.parse(values.data || '{}');
+                  if (data?.page?.includes('Lembrar meu email/usuário')) {
+                    rej('A página de login mudou, por favor atualize os cookies.');
+                  } else if (values.status) {
+                    app.value.loadingTable.login = false;
+                    Object.assign(form.value.auth, data);
+                    show.success('Login realizado com sucesso!', 2000);
+                    console.log("Login realizado com sucesso:", form.value.auth);
+                    if (tables.value.igrejas) {
+                      await carregarUnidades();
+                      console.log('Carregando igrejas...');
+                      await carregarIgrejas();
+                    }
+                    res(values);
+                  } else {
+                    show.warn(values.message || 'Login falhou', 4000);
+                    console.log("Login falhou:", values);
+                    rej(values.message || 'Login falhou');
                   }
-                  res(values);
-                } else {
-                  show.warn(values.message || 'Login falhou', 4000);
-                  rej(values.message || 'Login falhou');
+                } catch (error) {
+                  console.log("Erro ao processar resposta de login:", error);
+                  show.warn('Erro ao processar login (cookie inválido): ' + error, 4000)
+                } finally {
+                  app.value.loadingTable.login = false;
                 }
-                app.value.loadingTable.login = false;
               }
             );
           });
