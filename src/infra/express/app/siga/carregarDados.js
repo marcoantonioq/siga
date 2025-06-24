@@ -209,7 +209,6 @@ export async function* getMinisterios(token, pag = 100) {
     paginaAtual++;
     continuar =
       recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    break; // Adicionando break para evitar loop infinito
   }
 }
 
@@ -243,7 +242,6 @@ export async function* getAdministradores(token, pag = 100) {
     paginaAtual++;
     continuar =
       recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    break; // Adicionando break para evitar loop infinito
   }
 }
 
