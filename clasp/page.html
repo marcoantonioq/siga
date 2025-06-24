@@ -159,6 +159,16 @@
       margin-top: 10px;
     }
 
+    .required {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
+    .ok {
+      color: #27ae60;
+      font-weight: bold;
+    }
+
     .error {
       color: red;
     }
@@ -204,7 +214,7 @@
     }
 
     .spinner {
-      margin: 2px;
+      margin: 2x;
       width: 14px;
       height: 14px;
       border: 3px solid #ccc;
@@ -212,10 +222,12 @@
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
       display: inline-block;
+      flex-shrink: 0;
+      box-sizing: content-box;
     }
 
-    .cookies .spinner {
-      margin: 10px;
+    .cookies {
+      margin-right: 10px;
     }
 
     @keyframes spin {
@@ -258,11 +270,23 @@
         </div>
 
         <div class="form-group">
-          <label>Cookies*:</label>
+          <label>
+            Cookies*:
+            <span :class="{
+              required: !form.auth.token,
+              ok: form.auth.token
+              }">
+              {{ form.auth.token ? 'Logado com sucesso' : 'Falha ao logar!' }}
+            </span>
+          </label>
           <div class="flex cookies">
             <input type="text" v-model="form.auth.cookies" @blur="onCookiesBlur" placeholder="Digite os cookies"
               :disabled="app.loading" />
-            <span class="spinner " v-show="app.loadingTable.login"></span>
+            <button @click="login()" style="width: 100px;"
+              :disabled="app.loading || app.loadingTable.login">Login</button>
+            <div>
+              <span class="spinner" v-show="app.loadingTable.login"></span>
+            </div>
           </div>
         </div>
 
@@ -500,8 +524,10 @@
 
         function wsConnect() {
           return new Promise((resolve, reject) => {
-            // const socketUrl = '';
-            const socketUrl = 'https://siga.goias.ifg.edu.br';
+            const socketUrl =
+              location.hostname === 'localhost'
+                ? 'http://localhost:3009'
+                : 'https://siga.goias.ifg.edu.br';
             socket = io(socketUrl, { transports: ['websocket'] });
             socket.on('connected', async () => {
               app.value.wsConnected = true;
@@ -527,6 +553,9 @@
         }
 
         function login() {
+          if (!form.value.auth.cookies)
+            return Promise.reject('Cookies não informados.');
+
           app.value.loadingTable.login = true;
           return new Promise((res, rej) => {
             if (!form.value.auth.cookies)
@@ -549,10 +578,16 @@
               async (values) => {
                 app.value.loading = false;
                 toast.hideToast();
-                if (values.status) {
-                  show.success('Login realizado com sucesso!', 2000);
+                const data = JSON.parse(values.data || '{}');
+                console.log("Dados> ", data);
+
+                if (data.page.includes('Lembrar meu email/usuário')) {
+                  rej('A página de login mudou, por favor atualize os cookies.');
+                } else if (values.status) {
                   app.value.loadingTable.login = false;
-                  Object.assign(form.value.auth, JSON.parse(values.data) || {});
+                  Object.assign(form.value.auth, data);
+                  show.success('Login realizado com sucesso!', 2000);
+                  console.log("Login realizado com sucesso:", form.value.auth);
                   if (tables.value.igrejas) {
                     await carregarUnidades();
                     console.log('Carregando igrejas...');
@@ -686,6 +721,7 @@
         const lastCookies = ref('');
         function onCookiesBlur() {
           if (form.value.auth.cookies !== lastCookies.value) {
+            form.value.auth.token = '';
             lastCookies.value = form.value.auth.cookies;
             login().catch((e) => {
               show.warn(`Erro ao realizar login: ${e}`, 4000);
@@ -737,7 +773,7 @@
               google?.script?.run
                 .withSuccessHandler(res => tratarResposta(res, resolve, reject))
                 .withFailureHandler(err => tratarErro(err, resolve, reject))
-                .criarTabelasNoGoogleSheets({ tables: tables.value });
+                .GoogleSheets({ tables: JSON.stringify(tables.value) });
             } catch (err) {
               show.warn('Erro ao salvar tabelas no Google Sheets.', 4000);
               console.error('Erro ao salvar tabelas no Google Sheets:', err);
@@ -767,6 +803,7 @@
           copy,
           admFilter,
           filteredAdms,
+          login
         };
       },
     }).mount('#app');

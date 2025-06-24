@@ -3,7 +3,7 @@
  * Projeto em:
  * https://github.com/marcoantonioq/siga
  */
-const API_URL = 'https://node.goias.ifg.edu.br/api/siga';
+const API_URL = 'https://siga.goias.ifg.edu.br/siga';
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -56,6 +56,15 @@ function handleFetchError(error, msg) {
   console.log('msg::: ', msg);
   msg.errors.push(message);
   console.error(message);
+}
+
+function GoogleSheets(msg) {
+  if (msg?.tables) {
+    msg.tables = JSON.parse(msg.tables)
+    criarTabelasNoGoogleSheets(msg);
+  } else {
+    console.error('Nenhuma tabela encontrada no objeto msg:', msg);
+  }
 }
 
 function criarTabelasNoGoogleSheets(msg) {
