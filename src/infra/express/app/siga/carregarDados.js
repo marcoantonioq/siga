@@ -1,71 +1,144 @@
 import ky from 'ky';
 import { TransformStream } from 'node:stream/web';
 
-export function dadosPDO(obj = {}) {
-  return {
-    codigoServo: obj.codigoServo ?? null,
-    codigoRelac: obj.codigoRelac ?? null,
-    nome: obj.nome ?? '',
-    dataOrdenacaoServo: obj.dataOrdenacaoServo
-      ? new Date(obj.dataOrdenacaoServo)
-      : null,
-    ministerioCargo: obj.ministerioCargo ?? '',
-    nomeIgreja: obj.nomeIgreja ?? '',
-    codigoAdm: obj.codigoAdm ?? null,
-    nomeAdministracao: obj.nomeAdministracao ?? '',
-    documento: obj.documento ?? '',
-    codigoRrm: obj.codigoRrm ?? null,
-    nomeRrm: obj.nomeRrm ?? '',
-    pais: obj.pais ?? '',
-    estado: obj.estado ?? '',
-    cidade: obj.cidade ?? '',
-    aprovadorRrm: obj.aprovadorRrm ?? false,
-    statusCadastroCompleto: obj.statusCadastroCompleto ?? 0,
-    ativo: obj.ativo ?? false,
-    indicadorFoto: obj.indicadorFoto ?? false,
-    sexo: obj.sexo ?? '',
-    fotoUrl: obj.fotoUrl || null,
-    regional: obj.regional ?? '',
-    dataApresentacao: obj.dataApresentacao
-      ? new Date(obj.dataApresentacao)
-      : null,
-    dataVencimentoMandato: obj.dataVencimentoMandato
-      ? new Date(obj.dataVencimentoMandato)
-      : null,
-    administrador: obj.administrador ?? false,
-    nomeRA: obj.nomeRA ?? '',
-    cargo: obj.cargo ?? '',
-    statusMandato: obj.statusMandato ?? 0,
-    qsa: obj.qsa ?? false,
-    dataBatismo: obj.dataBatismo ? new Date(obj.dataBatismo) : null,
-    dataNascimento: obj.dataNascimento ? new Date(obj.dataNascimento) : null,
-    telefoneCasa: obj.telefoneCasa ?? '',
-    telefoneCelular: obj.telefoneCelular ?? '',
-    telefoneTrabalho: obj.telefoneTrabalho ?? '',
-    telefoneRecado: obj.telefoneRecado ?? '',
-    endereco: obj.endereco ?? '',
-    bairro: obj.bairro ?? '',
-    cep: obj.cep ?? '',
-    email1: obj.email1 ?? '',
-    email2: obj.email2 ?? '',
-    eventos: [],
-    codigo: obj.codigo ?? null,
-    numeroIdentificacao1: obj.numeroIdentificacao1 ?? '',
-    codigoSexo: obj.codigoSexo ?? null,
-    naoAtuando: obj.naoAtuando ?? false,
-    codigoAdministracao: obj.codigoAdministracao ?? null,
-    codigoRegional: obj.codigoRegional ?? null,
-    nomeRegional: obj.nomeRegional ?? '',
-    codigoIgreja: obj.codigoIgreja ?? null,
-    codigoMinisterioCargo: obj.codigoMinisterioCargo ?? null,
-    nomeMinisterioCargo: obj.nomeMinisterioCargo ?? '',
-    comum: obj.comum ?? false,
-    codigoServoOrdenacao: obj.codigoServoOrdenacao ?? null,
-    dataOrdenacao: obj.dataOrdenacao ? new Date(obj.dataOrdenacao) : null,
-    dataAGO: obj.dataAGO ? new Date(obj.dataAGO) : null,
-    numeroPosicaoIgreja: obj.numeroPosicaoIgreja ?? null,
-    grupo: obj.grupo ?? '',
+export function dadosPDO(lista = []) {
+  const aliases = {
+    nomerrm: 'nomeRRM',
+    nomeRrm: 'nomeRRM',
+    nomeRRM: 'nomeRRM',
+    codigoRrm: 'codigoRRM',
+    codigoRRM: 'codigoRRM',
+    codigoAdministracao: 'codigoAdm',
+    codigoAdm: 'codigoAdm',
+    nomeAdministracao: 'nomeRA',
+    nomeRA: 'nomeRA',
+    nomeRa: 'nomeRA',
+    dataOrdenacaoServo: 'dataOrdenacao',
+    dataOrdenacao: 'dataOrdenacao',
+    ministerioCargo: 'cargo',
+    nomeMinisterioCargo: 'cargo',
+    cargo: 'cargo',
+    codigoMinisterioCargo: 'codigoFuncao',
+    codigoServoMinisterioCargo: 'codigoFuncao',
+    codigoFuncao: 'codigoFuncao',
+    numeroIdentificacao1: 'documento',
+    documento: 'documento',
   };
+
+  const ordem = [
+    'grupo',
+    'codigo',
+    'codigoServo',
+    'codigoRelac',
+    'nome',
+    'sexo',
+    'dataBatismo',
+    'dataNascimento',
+    'telefoneCasa',
+    'telefoneCelular',
+    'telefoneTrabalho',
+    'telefoneRecado',
+    'endereco',
+    'bairro',
+    'cep',
+    'email1',
+    'email2',
+    'eventos',
+    'dataOrdenacao',
+    'cargo',
+    'administrador',
+    'nomeRA',
+    'nomeAdministracao',
+    'documento',
+    'nomeRRM',
+    'nomeRegional',
+    'nomeIgreja',
+    'comum',
+    'pais',
+    'estado',
+    'cidade',
+    'aprovadorRrm',
+    'statusCadastroCompleto',
+    'ativo',
+    'indicadorFoto',
+    'fotoUrl',
+    'regional',
+    'dataApresentacao',
+    'dataVencimentoMandato',
+    'statusMandato',
+    'qsa',
+    'numeroIdentificacao1',
+    'naoAtuando',
+    'dataAGO',
+    'codigoFuncao',
+    'codigoAdministracao',
+    'codigoRRM',
+    'codigoRegional',
+    'codigoIgreja',
+    'codigoSexo',
+    'numeroPosicaoIgreja',
+  ];
+
+  const padroes = {
+    eventos: [],
+    ativo: false,
+    aprovadorRrm: false,
+    indicadorFoto: false,
+    administrador: false,
+    qsa: false,
+    naoAtuando: false,
+  };
+
+  const datas = new Set([
+    'dataOrdenacaoServo',
+    'dataApresentacao',
+    'dataVencimentoMandato',
+    'dataBatismo',
+    'dataNascimento',
+    'dataOrdenacao',
+    'dataAGO',
+  ]);
+
+  // Normaliza um objeto agrupando valores em chaves padrão
+  const normalizar = (obj) => {
+    const result = {};
+    for (const [rawKey, value] of Object.entries(obj)) {
+      const key = aliases[rawKey] || rawKey;
+      if (value != null && value !== '' && result[key] === undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+
+  const normalizados = lista.map(normalizar);
+
+  const usados = new Set(normalizados.flatMap((obj) => Object.keys(obj)));
+
+  const colunas = [
+    ...ordem.filter((k) => usados.has(k)),
+    ...[...usados].filter((k) => !ordem.includes(k)),
+  ].filter((k) =>
+    normalizados.some(
+      (obj) =>
+        obj[k] != null &&
+        obj[k] !== '' &&
+        !(Array.isArray(obj[k]) && obj[k].length === 0)
+    )
+  );
+
+  return normalizados.map((obj) =>
+    Object.fromEntries(
+      colunas.map((k) => [
+        k,
+        obj[k] !== undefined
+          ? datas.has(k) && obj[k]
+            ? new Date(obj[k])
+            : obj[k]
+          : padroes[k] ?? (datas.has(k) ? null : ''),
+      ])
+    )
+  );
 }
 
 export async function* getMinisterios(token, pag = 100) {
@@ -84,9 +157,12 @@ export async function* getMinisterios(token, pag = 100) {
           filtro: { ativo: true },
           paginacao: { paginaAtual, quantidadePorPagina: pag },
         },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
     );
     const json = await res.json();
+
     if (Array.isArray(json.dados)) {
       for (const item of json.dados) {
         yield item;
@@ -96,6 +172,7 @@ export async function* getMinisterios(token, pag = 100) {
     paginaAtual++;
     continuar =
       recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
+    break; // Adicionando break para evitar loop infinito
   }
 }
 
@@ -115,6 +192,8 @@ export async function* getAdministradores(token, pag = 100) {
           filtro: { ativo: true },
           paginacao: { paginaAtual, quantidadePorPagina: pag },
         },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
     );
     const json = await res.json();
@@ -127,6 +206,7 @@ export async function* getAdministradores(token, pag = 100) {
     paginaAtual++;
     continuar =
       recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
+    break; // Adicionando break para evitar loop infinito
   }
 }
 
@@ -172,20 +252,36 @@ async function detalhesItem(item, token, grupo, urlBase) {
   const url = `${urlBase}?codigoServo=${item.codigoServo}&codigoRelac=${
     item.codigoRelac || ''
   }`;
+  function coletarValidos(obj, out = {}) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (v == null || v === '') continue;
+      const t = typeof v;
+      if (['string', 'number', 'boolean'].includes(t)) out[k] ??= v;
+      else if (v instanceof Date || (!isNaN(Date.parse(v)) && t === 'string'))
+        out[k] ??= new Date(v);
+      else if (Array.isArray(v))
+        v.forEach((i) => typeof i === 'object' && i && coletarValidos(i, out));
+      else if (t === 'object') coletarValidos(v, out);
+    }
+    return out;
+  }
   try {
     const res = await ky.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      timeout: 60000,
+      retry: { limit: 5 },
     });
     const detalhes = await res.json();
     // process.stdout.write(grupo[0].toLowerCase());
-    Object.assign(item, detalhes);
+    const validos = coletarValidos(detalhes);
+    for (const [k, v] of Object.entries(validos)) if (!item[k]) item[k] = v;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
   }
-  return dadosPDO(item);
+  return item;
 }
 
 export function executarMinisterios(token, pag = 100) {
@@ -231,10 +327,20 @@ export async function carregarDados({ auth, pag = 100 }) {
   const fim = Date.now();
   const minutos = ((fim - inicio) / 60000).toFixed(2);
   console.log(`Tempo gasto carregarDados: ${minutos} minutos`);
-  return dados;
+  return dadosPDO(dados);
 }
 
 // const token = '';
-// carregarDados({ auth: { token } })
-//   .then(() => {})
+// carregarDados({ auth: { token, pag: 1 } })
+//   .then((e) => {
+//     console.log('Dados carregados:', e.length);
+//     console.log(
+//       'Primeiro mini:',
+//       e.find((i) => i.grupo === 'Ministério')
+//     );
+//     console.log(
+//       'Segundo adm:',
+//       e.find((i) => i.grupo === 'Administrador')
+//     );
+//   })
 //   .catch(console.error);

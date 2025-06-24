@@ -54,9 +54,16 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
     page = await browser.newPage();
     page.setRequestInterception(true);
     page.on('request', (request) => {
-      ['image'].includes(request.resourceType())
-        ? request.abort()
-        : request.continue();
+      const resourceType = request.resourceType();
+      const url = request.url();
+      if (
+        ['image', 'stylesheet', 'font', 'script'].includes(resourceType) ||
+        url.match(/\.(png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|otf|eot|css|js)(\?|$)/i)
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
     });
     try {
       const parsedCookies = cookies.split(';').map((c) => {
@@ -69,14 +76,16 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
     }
 
     await page.goto(
-      'https://siga.congregacao.org.br/page.aspx?loadPage=/SIS/SIS99908.aspx',
+      'https://siga.congregacao.org.br/SIS/SIS99908.aspx',
       {
+        timeout: 60000,
         waitUntil: 'networkidle0',
       }
     );
     await page.goto(
       'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
       {
+        timeout: 60000,
         waitUntil: 'networkidle0',
       }
     );
@@ -90,6 +99,9 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
     result.message = 'Login realizado com sucesso.';
   } catch (error) {
     console.error('Erro ao criar diretório do usuário:', userDir, error);
+    result.message =
+      error.message ||
+      'Erro ao acessar o SIGA. Verifique o sistema SIGA ou cookies informados!';
     throw new Error(
       error.message ||
         'Erro ao acessar o SIGA. Verifique o sistema SIGA ou cookies informados!'

@@ -49,7 +49,7 @@ export function createExpressApp() {
   });
 
   app.get('/socket', (req, res) => {
-    const htmlPath = path.resolve('clasp/socket.html');
+    const htmlPath = path.resolve('clasp/page.html');
     res.sendFile(htmlPath);
   });
 
