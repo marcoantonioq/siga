@@ -600,7 +600,7 @@
                   }
                 } catch (error) {
                   console.log("Erro ao processar resposta de login:", error);
-                  show.warn('Erro ao processar login (cookie inválido): ' + error, 4000)
+                  show.warn('Erro ao processar login: ' + error, 4000)
                 } finally {
                   app.value.loadingTable.login = false;
                 }
