@@ -46,13 +46,12 @@ export function setupWebSocket(server) {
         if (!data.cookies) throw new Error('Cookies não informados.');
 
         const { data: auth } = await login(data.cookies);
-        response.status = true;
-        response.data = JSON.stringify(auth);
         response.message = auth.message || 'Login realizado com sucesso.';
+        response.status = true;
       } catch (error) {
         response.message = error.message;
       }
-
+      response.data = JSON.stringify(response.data);
       callback(response);
     });
 
