@@ -589,13 +589,10 @@
                     console.log("Login realizado com sucesso:", form.value.auth);
                     if (tables.value.igrejas) {
                       await carregarUnidades();
-                      console.log('Carregando igrejas...');
                       await carregarIgrejas();
                     }
                     res(values);
                   } else {
-                    show.warn(values.message || 'Login falhou', 4000);
-                    console.log("Login falhou:", values);
                     rej(values.message || 'Login falhou');
                   }
                 } catch (error) {
