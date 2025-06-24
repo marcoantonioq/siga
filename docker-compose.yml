@@ -17,4 +17,4 @@ services:
 networks:
   dockers:
     external: true
-    name: redes-dockers
+    name: dockers
