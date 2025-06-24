@@ -1,5 +1,26 @@
 import ky from 'ky';
 import { TransformStream } from 'node:stream/web';
+import { parsePhoneNumber } from 'libphonenumber-js';
+
+function formatPhoneNumberDD(phoneNumberString) {
+  try {
+    const phoneNumber = parsePhoneNumber(phoneNumberString, 'BR');
+    if (phoneNumber && phoneNumber.isValid()) {
+      const nationalNumber = phoneNumber.formatNational();
+
+      const cleanedNumber = nationalNumber.replace(/[()\s-]/g, '');
+
+      const ddd = cleanedNumber.substring(0, 2);
+
+      const restOfNumber = cleanedNumber.substring(2);
+
+      return `${ddd}${restOfNumber}`;
+    }
+  } catch (error) {
+    console.error('Erro ao formatar o número:', error);
+  }
+  return null;
+}
 
 export function dadosPDO(lista = []) {
   const aliases = {
@@ -127,18 +148,34 @@ export function dadosPDO(lista = []) {
     )
   );
 
-  return normalizados.map((obj) =>
-    Object.fromEntries(
-      colunas.map((k) => [
-        k,
-        obj[k] !== undefined
-          ? datas.has(k) && obj[k]
-            ? new Date(obj[k])
-            : obj[k]
-          : padroes[k] ?? (datas.has(k) ? null : ''),
-      ])
+  return normalizados
+    .map((obj) =>
+      Object.fromEntries(
+        colunas.map((k) => [
+          k,
+          obj[k] !== undefined
+            ? datas.has(k) && obj[k]
+              ? new Date(obj[k])
+              : obj[k]
+            : padroes[k] ?? (datas.has(k) ? null : ''),
+        ])
+      )
     )
-  );
+    .map((e) => {
+      if (e.telefoneCasa) {
+        e.telefoneCasa = formatPhoneNumberDD(e.telefoneCasa);
+      }
+      if (e.telefoneCelular) {
+        e.telefoneCelular = formatPhoneNumberDD(e.telefoneCelular);
+      }
+      if (e.telefoneTrabalho) {
+        e.telefoneTrabalho = formatPhoneNumberDD(e.telefoneTrabalho);
+      }
+      if (e.telefoneRecado) {
+        e.telefoneRecado = formatPhoneNumberDD(e.telefoneRecado);
+      }
+      return e;
+    });
 }
 
 export async function* getMinisterios(token, pag = 100) {
@@ -330,7 +367,8 @@ export async function carregarDados({ auth, pag = 100 }) {
   return dadosPDO(dados);
 }
 
-// const token = '';
+// const token =
+//   '';
 // carregarDados({ auth: { token, pag: 1 } })
 //   .then((e) => {
 //     console.log('Dados carregados:', e.length);

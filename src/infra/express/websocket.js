@@ -46,6 +46,7 @@ export function setupWebSocket(server) {
         if (!data.cookies) throw new Error('Cookies não informados.');
 
         const { data: auth } = await login(data.cookies);
+        response.data = auth;
         response.message = auth.message || 'Login realizado com sucesso.';
         response.status = true;
       } catch (error) {
