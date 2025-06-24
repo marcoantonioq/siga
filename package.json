@@ -16,7 +16,6 @@
     "express": "^4.21.2",
     "form-data": "^4.0.1",
     "ky": "^1.8.1",
-    "libphonenumber-js": "^1.12.9",
     "node-fetch": "^3.3.2",
     "puppeteer": "^23.11.1",
     "socket.io": "^4.8.1",
