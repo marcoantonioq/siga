@@ -3,7 +3,7 @@
  * Projeto em:
  * https://github.com/marcoantonioq/siga
  */
-const API_URL = 'https://node.goias.ifg.edu.br/api/siga';
+const API_URL = 'https://siga.goias.ifg.edu.br/siga';
 
 function onOpen() {
   SpreadsheetApp.getUi()

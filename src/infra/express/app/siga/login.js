@@ -58,7 +58,9 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
       const url = request.url();
       if (
         ['image', 'stylesheet', 'font', 'script'].includes(resourceType) ||
-        url.match(/\.(png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|otf|eot|css|js)(\?|$)/i)
+        url.match(
+          /\.(png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|otf|eot|css|js)(\?|$)/i
+        )
       ) {
         request.abort();
       } else {
@@ -72,16 +74,13 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
       });
       await page.setCookie(...parsedCookies);
     } catch (error) {
-      throw new Error('Erro ao configurar cookies:' + error.message);
+      throw new Error('Cookies inválidos!!!');
     }
 
-    await page.goto(
-      'https://siga.congregacao.org.br/SIS/SIS99908.aspx',
-      {
-        timeout: 60000,
-        waitUntil: 'networkidle0',
-      }
-    );
+    await page.goto('https://siga.congregacao.org.br/SIS/SIS99908.aspx', {
+      timeout: 60000,
+      waitUntil: 'networkidle0',
+    });
     await page.goto(
       'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
       {
