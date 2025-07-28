@@ -6,6 +6,7 @@ echo "🔄 Verificando atualizações do repositório..."
 git config pull.ff only
 
 # Faz fetch de todos os remotos e puxa o branch atual
+git reset --hard 
 git fetch --all
 git pull
 
