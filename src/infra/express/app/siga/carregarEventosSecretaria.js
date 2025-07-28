@@ -47,7 +47,10 @@ export async function carregarEventosSecretaria(values) {
               `${DATA.split('/').reverse().join('-')} ${HORA.split(
                 '-'
               )[0].trim()}`
-            ),
+            )
+              .toISOString()
+              .slice(0, 19)
+              .replace('T', ' '),
             IGREJA,
             OBSERVACOES: `${SEMANA}: ${HORA}`,
             STATUS: STATUS.replace(/<\/?[^>]+>/gi, ''),

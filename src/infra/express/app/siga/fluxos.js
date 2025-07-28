@@ -94,7 +94,10 @@ async function getDespesas(auth, igreja, date1, date2) {
                 CATEGORIA: row[6],
                 DATA: new Date(
                   new Date(1899, 11, 30).getTime() + row[0] * 86400000
-                ).toISOString(),
+                )
+                  .toISOString()
+                  .slice(0, 19)
+                  .replace('T', ' '),
                 VALOR: row[30] || 0,
                 OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
                 REF: Ref,
@@ -157,7 +160,7 @@ async function getColetas(auth, igreja, date1, date2) {
               IGREJA: nomeIgreja,
               IGREJA_DESC: nomeIgreja,
               CATEGORIA: tipo,
-              DATA: end,
+              DATA: end.slice(0, 19).replace('T', ' '),
               VALOR: row[i],
               OBSERVACOES: `Tipo: ${headersRow[i]}`,
               REF: ref,
@@ -309,7 +312,10 @@ async function getDepositos(auth, igreja, date1, date2) {
               FLUXO: 'Deposito',
               IGREJA: igrejaNome,
               IGREJA_DESC: igrejaNome,
-              DATA: new Date(excelDateToJSDate(row[3])).toISOString(),
+              DATA: new Date(excelDateToJSDate(row[3]))
+                .toISOString()
+                .slice(0, 19)
+                .replace('T', ' '),
               VALOR: row[18],
               OBSERVACOES: `Conta: ${row[7]}; Documento: ${row[16]}`,
               REF: ref,
@@ -431,7 +437,7 @@ async function getOfertas(auth, igreja, date1, date2) {
               IGREJA: igrejaNome,
               IGREJA_DESC: igrejaNome,
               CATEGORIA: categoria,
-              DATA: data,
+              DATA: data.slice(0, 19).replace('T', ' '),
               VALOR: row[i],
               OBSERVACOES: `Tipo: ${observacoes[i] || ''};`,
               REF: ref,

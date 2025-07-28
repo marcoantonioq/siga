@@ -6,7 +6,7 @@
  * @typedef {Object} EventoData
  * @property {EventoTipo} EVENTO - O tipo de evento, ex: "Secretaria".
  * @property {string} GRUPO - O grupo relacionado ao evento.
- * @property {Date} DATA - Data e hora do evento.
+ * @property {string} DATA - Data e hora do evento.
  * @property {string} IGREJA - Nome da igreja.
  * @property {string} OBSERVACOES - Observações sobre o evento.
  * @property {string} STATUS - O status do evento.
@@ -22,7 +22,7 @@ export class Evento {
   constructor({
     EVENTO,
     GRUPO = '',
-    DATA = new Date(),
+    DATA = new Date().toISOString().slice(0, 19).replace('T', ' '),
     IGREJA = '',
     IGREJA_DESC = '',
     OBSERVACOES = '',
