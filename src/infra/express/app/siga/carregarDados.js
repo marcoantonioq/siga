@@ -156,7 +156,10 @@ export function dadosPDO(lista = []) {
         let valor;
         if (item[k] !== undefined) {
           // Converte datas para objeto Date, se necessário
-          valor = datas.has(k) && item[k] ? new Date(item[k]) : item[k];
+          valor =
+            datas.has(k) && item[k]
+              ? new Date(item[k]).toISOString().slice(0, 19).replace('T', ' ')
+              : item[k];
         } else {
           // Usa valor padrão se não existir
           valor = padroes[k] ?? (datas.has(k) ? null : '');

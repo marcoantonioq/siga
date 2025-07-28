@@ -5,8 +5,6 @@ git pull --all
 
 docker network create --driver bridge dockers
 
-docker network create --driver bridge dockers
-
 # Instale dependências, caso existam novas
 npm install
 
