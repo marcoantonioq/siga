@@ -70,8 +70,6 @@ function GoogleSheets(msg) {
 function criarTabelasNoGoogleSheets(msg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  console.log("Atualizando planilha: ", msg)
-
   for (const tableName in msg?.tables || []) {
     console.log("Dados da tabela:", tableName, msg.tables[tableName].length);
     

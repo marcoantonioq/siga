@@ -1,6 +1,9 @@
 #!/bin/bash
 # Verifique se há atualizações no repositório
-git pull origin main
+git config pull.ff only
+git pull --all
+
+docker network create --driver bridge dockers
 
 docker network create --driver bridge dockers
 
