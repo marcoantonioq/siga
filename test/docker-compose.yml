@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  monitor:
+    image: alpine
+    container_name: monitor-siga
+    command: sh -c "ping siga"
+    restart: always
+    networks:
+      - dockers
+
+networks:
+  dockers:
+    external: true
+    name: redes-dockers

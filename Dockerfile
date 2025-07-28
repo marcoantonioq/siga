@@ -7,7 +7,7 @@ USER node
 
 WORKDIR /app
 
-RUN git clone https://github.com/marcoantonioq/siga.git . && npm install
+RUN git clone https://github.com/marcoantonioq/siga.git . --branch main && npm install
 
 RUN chmod +x /app/start.sh
 

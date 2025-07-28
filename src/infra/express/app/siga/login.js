@@ -118,7 +118,6 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
       }
     }
   }
-
   return result;
 }
 

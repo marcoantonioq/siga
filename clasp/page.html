@@ -702,6 +702,8 @@
 
         function carregarSolicitacoes(adm) {
           if (!options.value.includes('solicitacoes')) return Promise.resolve();
+          console.log("Estou carregando solicitações para:", adm);
+
           const payload = {
             auth: form.value.auth,
             empresa: adm,
