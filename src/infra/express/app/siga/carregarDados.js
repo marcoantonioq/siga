@@ -18,28 +18,10 @@ const limparValor = (v) =>
     ? v.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim()
     : v;
 
-function formatPhoneNumberDD(phoneNumberString) {
-  try {
-    const phoneNumber = phoneNumberString
-      .replace(/[^\d]/g, '')
-      .replace(/^55(\d{2})(\d{8,})$/, '$1$2');
-    return phoneNumber;
-  } catch (error) {
-    console.error('Erro ao formatar o número:', phoneNumberString, error);
-  }
-  return '';
-}
-
-const limparValor = (v) =>
-  typeof v === 'string'
-    ? v.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim()
-    : v;
-
 export function dadosPDO(lista = []) {
   const aliases = {
     nomerrm: 'nomeRRM',
     nomeRrm: 'nomeRRM',
-    nomeRegional: 'nomeRRM',
     nomeRegional: 'nomeRRM',
     nomeRRM: 'nomeRRM',
     codigoRrm: 'codigoRRM',
@@ -105,9 +87,6 @@ export function dadosPDO(lista = []) {
     'codigo',
     'codigoServo',
     'codigoRelac',
-    'codigo',
-    'codigoServo',
-    'codigoRelac',
     'codigoFuncao',
     'codigoAdministracao',
     'codigoRRM',
@@ -142,27 +121,13 @@ export function dadosPDO(lista = []) {
   const normalizados = [];
 
   for (const item of lista) {
-  const vistos = new Set();
-  const normalizados = [];
-
-  for (const item of lista) {
     const result = {};
-    for (const [rawKey, value] of Object.entries(item)) {
     for (const [rawKey, value] of Object.entries(item)) {
       const key = aliases[rawKey] || rawKey;
       if (value != null && value !== '' && result[key] === undefined) {
         result[key] = limparValor(value);
-        result[key] = limparValor(value);
       }
     }
-
-    const chaveUnica = `${result.codigo ?? ''}|${result.grupo ?? ''}`;
-    if (!vistos.has(chaveUnica)) {
-      vistos.add(chaveUnica);
-      normalizados.push(result);
-    }
-  }
-  const usados = new Set(normalizados.flatMap((item) => Object.keys(item)));
 
     const chaveUnica = `${result.codigo ?? ''}|${result.grupo ?? ''}`;
     if (!vistos.has(chaveUnica)) {
@@ -181,55 +146,9 @@ export function dadosPDO(lista = []) {
         item[k] != null &&
         item[k] !== '' &&
         !(Array.isArray(item[k]) && item[k].length === 0)
-      (item) =>
-        item[k] != null &&
-        item[k] !== '' &&
-        !(Array.isArray(item[k]) && item[k].length === 0)
     )
   );
 
-  return normalizados.map((item) => {
-    // Monta o objeto final com as colunas desejadas
-    const resultado = Object.fromEntries(
-      colunas.map((k) => {
-        let valor;
-        if (item[k] !== undefined) {
-          // Converte datas para objeto Date, se necessário
-          valor = datas.has(k) && item[k] ? new Date(item[k]) : item[k];
-        } else {
-          // Usa valor padrão se não existir
-          valor = padroes[k] ?? (datas.has(k) ? null : '');
-        }
-        return [k, valor];
-      })
-    );
-
-    // Formata telefones, se existirem
-    try {
-      if (resultado.telefoneCasa) {
-        resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
-      }
-      if (resultado.telefoneCelular) {
-        resultado.telefoneCelular = formatPhoneNumberDD(
-          resultado.telefoneCelular
-        );
-      }
-      if (resultado.telefoneTrabalho) {
-        resultado.telefoneTrabalho = formatPhoneNumberDD(
-          resultado.telefoneTrabalho
-        );
-      }
-      if (resultado.telefoneRecado) {
-        resultado.telefoneRecado = formatPhoneNumberDD(
-          resultado.telefoneRecado
-        );
-      }
-    } catch (error) {
-      console.error('Erro ao formatar telefone:', error, resultado);
-    }
-
-    return resultado;
-  });
   return normalizados.map((item) => {
     // Monta o objeto final com as colunas desejadas
     const resultado = Object.fromEntries(
@@ -289,61 +208,8 @@ export async function* getMinisterios(token, pag = 100) {
   let continuar = true;
   while (continuar) {
     try {
-      try {
       const res = await ky.post(
-          'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            json: {
-              filtro: { ativo: true },
-              paginacao: { paginaAtual, quantidadePorPagina: pag },
-            },
-            timeout: 60000,
-            retry: { limit: 5 },
-          }
-        );
-        const json = await res.json();
-
-      if (Array.isArray(json.dados)) {
-        for (const item of json.dados) {
-          yield item;
-          recebidos++;
-        }
-      }
-      paginaAtual++;
-      continuar =
-        recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    } catch (error) {
-      console.error('Erro ao obter ministérios:', error);
-      throw error;
-    }
-      if (Array.isArray(json.dados)) {
-        for (const item of json.dados) {
-          yield item;
-          recebidos++;
-        }
-      }
-      paginaAtual++;
-      continuar =
-        recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    } catch (error) {
-      console.error('Erro ao obter ministérios:', error);
-      throw error;
-    }
-  }
-}
-
-export async function* getAdministradores(token, pag = 100) {
-  let paginaAtual = 0;
-  let recebidos = 0;
-  let continuar = true;
-  while (continuar) {
-    try {
-      const res = await ky.post(
-        'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
+        'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -369,9 +235,17 @@ export async function* getAdministradores(token, pag = 100) {
       continuar =
         recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
     } catch (error) {
-      console.error('Erro ao obter administradores:', error);
+      console.error('Erro ao obter ministérios:', error);
       throw error;
     }
+  }
+}
+
+export async function* getAdministradores(token, pag = 100) {
+  let paginaAtual = 0;
+  let recebidos = 0;
+  let continuar = true;
+  while (continuar) {
     try {
       const res = await ky.post(
         'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
@@ -448,8 +322,6 @@ async function detalhesItem(item, token, grupo, urlBase) {
   const url = `${urlBase}?codigoServo=${item.codigoServo}&codigoRelac=${
     item.codigoRelac || ''
   }`;
-  function coletarValidos(item, out = {}) {
-    for (const [k, v] of Object.entries(item)) {
   function coletarValidos(item, out = {}) {
     for (const [k, v] of Object.entries(item)) {
       if (v == null || v === '') continue;
