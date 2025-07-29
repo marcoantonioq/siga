@@ -130,11 +130,15 @@ export function dadosPDO(lista = []) {
       }
     }
 
-    const chaveUnica = `${result.codigo ?? ''}|${result.grupo ?? ''}`;
-    if (!vistos.has(chaveUnica)) {
-      vistos.add(chaveUnica);
-      normalizados.push(result);
-    }
+    // Verificando se o problema de itens duplicados ocorre
+    // const chaveUnica = `${result.codigo ?? ''}|${result.grupo ?? ''}`;
+    // if (!vistos.has(chaveUnica)) {
+    //   vistos.add(chaveUnica);
+    //   normalizados.push(result);
+    // }
+
+    // disable duplicate check for now
+    normalizados.push(result);
   }
   const usados = new Set(normalizados.flatMap((item) => Object.keys(item)));
 
