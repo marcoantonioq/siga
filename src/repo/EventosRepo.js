@@ -41,7 +41,7 @@ export class EventosRepo {
           config: {
             sEcho: 1,
             iDisplayStart: 0,
-            iDisplayLength: 100,
+            iDisplayLength: 1000,
             sSearch: '',
             iSortCol: 0,
             sSortDir: 'asc',
@@ -49,6 +49,8 @@ export class EventosRepo {
         },
       });
       const result = JSON.parse(data);
+      console.log("Resultado da requisição:", result);
+      
       if (result?.d?.aaData && code == 200) {
         result.d.aaData
           .map(([DATA, SEMANA, HORA, GRUPO, IGREJA, , STATUS, ID]) => {

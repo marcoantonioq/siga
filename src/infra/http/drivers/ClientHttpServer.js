@@ -1,6 +1,6 @@
 import { Request } from '../entity/Request.js';
 import { Response } from '../entity/Response.js';
-import fetch from 'node-fetch';
+import nodeFetch from 'node-fetch';
 import FormData from 'form-data';
 
 export class ClientHttpServer {
@@ -19,6 +19,7 @@ export class ClientHttpServer {
    */
   async fetch(request) {
     const result = Response.create({});
+    
     try {
       if (!request.headers) request.headers = {};
 
@@ -55,17 +56,17 @@ export class ClientHttpServer {
       if (this.#__antixsrftoken) {
         request.headers.__antixsrftoken = this.#__antixsrftoken;
       }
-      const res = await fetch(request.url, {
+      const res = await nodeFetch(request.url, {
         method: request.method,
         headers: request.headers,
         body: request.data,
       });
       process.stdout.write('.');
 
+      
       result.code = res.status;
       result.type = res.headers.get('content-type') || '';
       result.headers = { ...res.headers };
-
       if (result.type === 'application/vnd.ms-excel') {
         const blob = await res.blob();
         const arrayBuffer = await blob.arrayBuffer();
