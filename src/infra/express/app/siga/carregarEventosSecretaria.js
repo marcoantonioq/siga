@@ -24,7 +24,7 @@ export async function carregarEventosSecretaria(values) {
           config: {
             sEcho: 1,
             iDisplayStart: 0,
-            iDisplayLength: 100,
+            iDisplayLength: 1000,
             sSearch: '',
             iSortCol: 0,
             sSortDir: 'asc',

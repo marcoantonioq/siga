@@ -12,9 +12,6 @@ async function start() {
 
   app.eventos.getEventosSecretaria("2025-07-01", null, 126).then((eventos) => {
     console.log('Eventos encontrados:', eventos.length);
-    eventos.forEach((evento) => {
-      console.log(evento);
-    });
   }).catch((error) => {
     console.error('Erro ao buscar eventos:', error);
   });
