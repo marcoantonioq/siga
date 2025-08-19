@@ -6,6 +6,5 @@ RUN apt-get update && apt-get install -y ca-certificates fonts-liberation libaso
 USER node
 
 WORKDIR /app
-# RUN git clone https://github.com/marcoantonioq/siga.git . --branch main && npm install
 
 EXPOSE 3009
