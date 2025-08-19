@@ -3,7 +3,7 @@ import { EventosRepo }  from "../repo/EventosRepo.js";
 
 async function start() {
     const client = new HTTPClient({
-    cookie: 'ASP.NET_SessionId=nyjayser03veobs4fmdxul3k; lang=pt-BR; __AntiXsrfToken=739d20a734004756a6e6ac0439bfbfb5; ai_user=A1GUm8io/8dEc33cX7FXf9|2025-07-28T11:34:21.017Z; sigaTrustedDevice=26559; ai_session=KljJ3GVaCXQpXtUzvOHGgi|1755515443954|1755522733636',
+    cookie: 'ASP.NET_SessionId=emffrpqwjw0j5ywm4bdg13x2; __AntiXsrfToken=3fc960ad6df6491591783841345ec04e; sigaTrustedDevice=94129; ai_user=GkECQJ26JJtLJ3XlT/EI0g|2025-08-09T18:04:24.254Z; user=nayara.queiroz; remember=true; ai_session=cAExM7lbLMOoUK3fYYZ9Hx|1755604907361|1755604907361',
   });
 
   const app = {
