@@ -19,4 +19,4 @@ echo "📦 Instalando dependências..."
 npm install
 
 echo "🚀 Iniciando servidor..."
-node src/index.js
+npx nodemon src/index.js
