@@ -7,6 +7,7 @@ import { carregarEventosSecretaria } from './app/siga/carregarEventosSecretaria.
 import { carregarFluxo, carregarOfertas } from './app/siga/fluxos.js';
 import { carregarDados } from './app/siga/carregarDados.js';
 import { carregarSolicitacoes } from './app/siga/carregarSolictacoes.js';
+import { preventiva } from './app/siga/preventiva.js';
 
 const createResponse = (data = {}) => ({
   status: true,
@@ -64,6 +65,7 @@ export function setupWebSocket(server) {
     handleRequest(socket, 'ofertas', carregarOfertas);
     handleRequest(socket, 'dados', carregarDados);
     handleRequest(socket, 'solicitacoes', carregarSolicitacoes);
+    handleRequest(socket, 'preventiva', preventiva);
   });
 
   return io;

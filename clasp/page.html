@@ -496,6 +496,7 @@
                       await carregarFluxos(igreja),
                     ])
                     await carregarOfertas(igreja);
+                    await carregarPreventiva(igreja);
                   } else if (igreja.IGREJA_TIPO === 11) {
                     show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await empresaAlterar({
@@ -504,7 +505,6 @@
                     });
                     await carregarDados(igreja);
                     await carregarSolicitacoes(igreja);
-                    await carregarPreventiva(igreja);
                   }
                 } catch (error) {
                   show.warn(
