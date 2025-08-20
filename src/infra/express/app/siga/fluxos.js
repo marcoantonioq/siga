@@ -547,11 +547,12 @@ export async function carregarFluxo(payload) {
   ]);
 
   return [...despesas, ...depositos, ...coletas].map(e => {
-    e.IGREJA_ADM = empresa.IGREJA_ADM
-    e.IGREJA_COD = empresa.IGREJA_COD
-    e.IGREJA_TIPO = empresa.IGREJA_TIPO
-    e.REGIONAL = empresa.REGIONAL
-    return e
+    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
+    e.IGREJA_ADM = empresa.IGREJA_ADM;
+    e.IGREJA_COD = empresa.IGREJA_COD;
+    e.IGREJA_TIPO = empresa.IGREJA_TIPO;
+    e.REGIONAL = empresa.REGIONAL;
+    return e;
   });
 }
 
@@ -562,6 +563,7 @@ export async function carregarOfertas(payload) {
   const ofertas = await getOfertas(auth, empresa, date1, date2);
   fluxos.push(...ofertas);
   return fluxos.map(e => {
+    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM
     e.IGREJA_COD = empresa.IGREJA_COD
     e.IGREJA_TIPO = empresa.IGREJA_TIPO
