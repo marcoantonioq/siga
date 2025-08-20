@@ -546,7 +546,13 @@ export async function carregarFluxo(payload) {
     getColetas(auth, empresa, date1, date2),
   ]);
 
-  return [...despesas, ...depositos, ...coletas];
+  return [...despesas, ...depositos, ...coletas].map(e => {
+    e.IGREJA_ADM = empresa.IGREJA_ADM
+    e.IGREJA_COD = empresa.IGREJA_COD
+    e.IGREJA_TIPO = empresa.IGREJA_TIPO
+    e.REGIONAL = empresa.REGIONAL
+    return e
+  });
 }
 
 // Carretar Fluxo e Ofertas em paralelo pode gerar erro
@@ -555,5 +561,11 @@ export async function carregarOfertas(payload) {
   const fluxos = [];
   const ofertas = await getOfertas(auth, empresa, date1, date2);
   fluxos.push(...ofertas);
-  return fluxos;
+  return fluxos.map(e => {
+    e.IGREJA_ADM = empresa.IGREJA_ADM
+    e.IGREJA_COD = empresa.IGREJA_COD
+    e.IGREJA_TIPO = empresa.IGREJA_TIPO
+    e.REGIONAL = empresa.REGIONAL
+    return e
+  });
 }
