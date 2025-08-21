@@ -21,18 +21,37 @@ const formatPhoneNumberDD = (phoneNumberString) => {
   return phoneNumberString.replace(/[^\d]/g, '').replace(/^55(\d{2})(\d{8,})$/, '$1$2');
 };
 
+
 /**
- * Coleta valores válidos de um objeto, ignorando nulos e vazios.
+ * Coleta valores válidos de um objeto, incluindo detalhes aninhados.
  * @param {Object} detalhesItem - O objeto de origem.
- * @param {Object} out - O objeto de destino.
+ * @param {Object} out - O objeto de destino para armazenar os valores válidos.
  * @returns {Object} O objeto de destino com os valores válidos.
  */
 const coletarValidos = (detalhesItem, out = {}) => {
   if (typeof detalhesItem !== 'object' || detalhesItem === null) return out;
+  
   for (const [key, value] of Object.entries(detalhesItem)) {
-    if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) continue;
-    out[key] = out[key] ?? value;
+    if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) {
+      continue;
+    }
+
+    const valueType = typeof value;
+    if (['string', 'number', 'boolean'].includes(valueType)) {
+      out[key] = out[key] ?? value;
+    } else if (value instanceof Date || (!isNaN(Date.parse(value)) && valueType === 'string')) {
+      out[key] = out[key] ?? new Date(value);
+    } else if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === 'object' && item) {
+          coletarValidos(item, out);
+        }
+      });
+    } else if (valueType === 'object') {
+      coletarValidos(value, out);
+    }
   }
+  
   return out;
 };
 
