@@ -705,8 +705,6 @@
 
         function carregarSolicitacoes(adm) {
           if (!options.value.includes('solicitacoes')) return Promise.resolve();
-          console.log("Estou carregando solicitações para:", adm);
-
           const payload = {
             auth: form.value.auth,
             empresa: adm,
@@ -718,14 +716,13 @@
 
         function carregarPreventiva(adm) {
           if (!options.value.includes('preventiva')) return Promise.resolve();
-          console.log("Estou carregando preventiva para:", adm);
-
           const payload = {
             auth: form.value.auth,
             empresa: adm,
             date1: form.value.date1,
             date2: form.value.date2,
           };
+          console.log("Carregado dados: ", payload);
           return emitir('preventiva', payload, 'preventiva', 'preventiva');
         }
 
