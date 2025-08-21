@@ -8,6 +8,7 @@ import { carregarFluxo, carregarOfertas } from './app/siga/fluxos.js';
 import { carregarDados } from './app/siga/carregarDados.js';
 import { carregarSolicitacoes } from './app/siga/carregarSolictacoes.js';
 import { preventiva } from './app/siga/preventiva.js';
+import { token } from './app/siga/token.js';
 
 const createResponse = (data = {}) => ({
   status: true,
@@ -56,6 +57,18 @@ export function setupWebSocket(server) {
       response.data = JSON.stringify(response.data);
       callback(response);
     });
+
+
+    socket.on('token', async (data, callback) => {
+      const response = createResponse({
+        cookies: '',
+        username: '',
+        token: '',
+      });
+      response.token = await token(data)
+      response.data = data;
+      callback(response);
+    })
 
     handleRequest(socket, 'getUnidades', empresas);
     handleRequest(socket, 'getIgrejas', igrejas);

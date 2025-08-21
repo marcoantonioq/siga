@@ -473,11 +473,19 @@
           }
         }
 
+        function clearTablesProcess() {
+          for (const key in tables.value) {
+            if (options.value.includes(key))
+              tables.value[key] = [];
+          }
+        }
+
         async function loadData() {
           if (!validarCampos()) return;
           app.value.loading = true;
           try {
             await carregarIgrejas();
+            clearTablesProcess()
             for (const adm of form.value.adms) {
               if (!adm.active) continue;
               adm.loading = true;
@@ -491,6 +499,7 @@
                       auth: form.value.auth,
                     });
                     show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
+                    await getToken(form.value.auth)
                     await Promise.all([
                       await carregarEventos(igreja),
                       await carregarFluxos(igreja),
@@ -555,6 +564,19 @@
           });
         }
 
+        function getToken() {
+          return new Promise((resolve, reject) => {
+            socket.emit(
+              'token',
+              { cookies: form.value.auth.cookies },
+              async (values) => {
+                form.value.auth.token = values.token;
+                resolve(values);
+              }
+            );
+          });
+        }
+
         function login() {
           if (!form.value.auth.cookies)
             return Promise.reject('Cookies não informados.');
@@ -615,7 +637,7 @@
             socket.emit(nome, payload, (res) => {
               if (loadingKey) app.value.loadingTable[loadingKey] = false;
               if (res?.status) {
-                if (tabela) tables.value[tabela] = JSON.parse(res.data);
+                if (tabela) tables.value[tabela].push(...JSON.parse(res.data));
                 resolve(res);
               } else {
                 reject(res?.message || 'Erro desconhecido');
