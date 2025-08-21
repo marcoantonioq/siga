@@ -131,9 +131,9 @@ const processarEmLotes = async (items, processor, batchSize = 20) => {
 
 // --- Lógica Principal de Negócio ---
 /**
- * Normaliza uma lista de objetos para um formato consistente, aplicando regras de negócio.
+ * Normaliza uma lista de objetos para um formato consistente, aplicando regras de negócio e mantendo a ordem de colunas.
  * @param {Array<Object>} lista - Lista de objetos a serem normalizados.
- * @returns {Array<Object>} Lista de objetos normalizados.
+ * @returns {Array<Object>>} Lista de objetos normalizados.
  */
 export const dadosPDO = (lista = []) => {
   if (!Array.isArray(lista)) {
@@ -149,6 +149,21 @@ export const dadosPDO = (lista = []) => {
     ministerioCargo: 'cargo', nomeMinisterioCargo: 'cargo',
     codigoMinisterioCargo: 'codigoFuncao', codigoServoMinisterioCargo: 'codigoFuncao',
     numeroIdentificacao1: 'documento',
+  };
+
+  const ordem = [
+    'grupo', 'nome', 'sexo', 'dataBatismo', 'dataNascimento', 'telefoneCasa', 'telefoneCelular', 'telefoneTrabalho',
+    'telefoneRecado', 'endereco', 'bairro', 'cep', 'email1', 'email2', 'eventos', 'dataOrdenacao', 'cargo',
+    'administrador', 'nomeRA', 'nomeAdministracao', 'documento', 'nomeRRM', 'nomeIgreja', 'comum', 'pais', 'estado',
+    'cidade', 'aprovadorRrm', 'statusCadastroCompleto', 'ativo', 'indicadorFoto', 'fotoUrl', 'regional',
+    'dataVencimentoMandato', 'statusMandato', 'qsa', 'numeroIdentificacao1', 'naoAtuando', 'dataAGO', 'codigo',
+    'codigoServo', 'codigoRelac', 'codigoFuncao', 'codigoAdministracao', 'codigoRRM', 'codigoRegional',
+    'codigoIgreja', 'codigoSexo', 'numeroPosicaoIgreja',
+  ];
+
+  const padroes = {
+    eventos: [], ativo: false, aprovadorRrm: false, indicadorFoto: false,
+    administrador: false, qsa: false, naoAtuando: false,
   };
 
   const datas = new Set([
@@ -167,27 +182,37 @@ export const dadosPDO = (lista = []) => {
     return result;
   });
 
+  const usados = new Set(normalizados.flatMap((item) => Object.keys(item)));
+
+  const colunas = [
+    ...ordem.filter((k) => usados.has(k)),
+    ...[...usados].filter((k) => !ordem.includes(k)),
+  ].filter((k) =>
+    normalizados.some((item) => item[k] != null && item[k] !== '' && !(Array.isArray(item[k]) && item[k].length === 0))
+  );
+
   return normalizados.map((item) => {
-    const resultado = { ...item };
-    
-    // Tratamento de tipos e formatação
-    if (datas.has('dataOrdenacao') && item.dataOrdenacao) {
-      resultado.dataOrdenacao = new Date(item.dataOrdenacao).toISOString().slice(0, 19).replace('T', ' ');
+    const resultado = Object.fromEntries(
+      colunas.map((k) => {
+        let valor;
+        if (Object.prototype.hasOwnProperty.call(item, k)) {
+          valor = datas.has(k) && item[k] ? new Date(item[k]).toISOString().slice(0, 19).replace('T', ' ') : item[k];
+        } else {
+          valor = padroes[k] ?? (datas.has(k) ? null : '');
+        }
+        return [k, valor];
+      })
+    );
+    try {
+      if (resultado.telefoneCasa) resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
+      if (resultado.telefoneCelular) resultado.telefoneCelular = formatPhoneNumberDD(resultado.telefoneCelular);
+      if (resultado.telefoneTrabalho) resultado.telefoneTrabalho = formatPhoneNumberDD(resultado.telefoneTrabalho);
+      if (resultado.telefoneRecado) resultado.telefoneRecado = formatPhoneNumberDD(resultado.telefoneRecado);
+      if (typeof resultado.nomeRA === 'string') resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
+      if (typeof resultado.nomeRRM === 'string') resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
+    } catch (error) {
+      console.error('Erro ao formatar dados:', error, resultado);
     }
-    if (resultado.telefoneCasa) resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
-    if (resultado.telefoneCelular) resultado.telefoneCelular = formatPhoneNumberDD(resultado.telefoneCelular);
-    if (resultado.nomeRA) resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
-    if (resultado.nomeRRM) resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
-
-    // Definição de valores padrão para campos ausentes
-    resultado.eventos = item.eventos ?? [];
-    resultado.ativo = item.ativo ?? false;
-    resultado.aprovadorRrm = item.aprovadorRrm ?? false;
-    resultado.indicadorFoto = item.indicadorFoto ?? false;
-    resultado.administrador = item.administrador ?? false;
-    resultado.qsa = item.qsa ?? false;
-    resultado.naoAtuando = item.naoAtuando ?? false;
-
     return resultado;
   });
 };
