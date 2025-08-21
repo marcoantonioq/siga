@@ -1,4 +1,3 @@
-import ky from "ky";
 import { carregarDados } from "../infra/express/app/siga/carregarDados.js";
 
 async function start() {
