@@ -15,18 +15,18 @@ function formatPhoneNumberDD(phoneNumberString) {
       console.warn('formatPhoneNumberDD recebeu um valor não-string:', phoneNumberString);
       return '';
     }
-    
+
     // Remove todos os caracteres que não são dígitos
     const phoneNumber = phoneNumberString
       .replace(/[^\d]/g, '')
       // Remove o prefixo '55' do DDD, se presente, e formata
       .replace(/^55(\d{2})(\d{8,})$/, '$1$2');
-    
+
     return phoneNumber;
   } catch (error) {
     console.error('Erro ao formatar o número de telefone:', phoneNumberString, error);
     // Em caso de erro, retorna a string original para não perder o dado
-    return phoneNumberString || ''; 
+    return phoneNumberString || '';
   }
 }
 
@@ -233,93 +233,68 @@ export function dadosPDO(lista = []) {
 }
 
 /**
- * Gerador assíncrono para obter ministérios da API com paginação.
+ * Gerador assíncrono para obter ministérios da API 
  * @param {string} token - O token de autenticação.
- * @param {number} pag - O número de itens por página.
  */
-export async function* getMinisterios(token, pag = 100) {
-  let paginaAtual = 0;
-  let recebidos = 0;
-  let continuar = true;
-  while (continuar) {
-    try {
-      const res = await ky.post(
-        'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          json: {
-            filtro: { ativo: true },
-            paginacao: { paginaAtual, quantidadePorPagina: pag },
-          },
-          timeout: 60000,
-          retry: { limit: 5 },
-        }
-      );
-      const json = await res.json();
-      
-      // Verifica se a resposta contém um array de dados
-      if (Array.isArray(json.dados) && json.dados.length > 0) {
-        for (const item of json.dados) {
-          yield item;
-          recebidos++;
-        }
+export async function* getMinisterios(token) {
+  try {
+    const res = await ky.post(
+      'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        json: {
+          filtro: { ativo: true },
+          paginacao: null,
+        },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
-      
-      paginaAtual++;
-      // A condição para continuar foi ajustada para evitar loop infinito
-      continuar = recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    } catch (error) {
-      console.error('Erro ao obter ministérios:', error.message);
-      // Lança o erro para que o chamador possa lidar com ele
-      throw error;
+    );
+    const json = await res.json();
+    if (Array.isArray(json.dados) && json.dados.length > 0) {
+      for (const item of json.dados) {
+        yield item;
+      }
     }
+  } catch (error) {
+    console.error('Erro ao obter ministérios:', error.message);
+    throw error;
   }
 }
 
 /**
- * Gerador assíncrono para obter administradores da API com paginação.
+ * Gerador assíncrono para obter administradores da API.
  * @param {string} token - O token de autenticação.
- * @param {number} pag - O número de itens por página.
  */
-export async function* getAdministradores(token, pag = 100) {
-  let paginaAtual = 0;
-  let recebidos = 0;
-  let continuar = true;
-  while (continuar) {
-    try {
-      const res = await ky.post(
-        'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          json: {
-            filtro: { ativo: true },
-            paginacao: { paginaAtual, quantidadePorPagina: pag },
-          },
-          timeout: 60000,
-          retry: { limit: 5 },
-        }
-      );
-      const json = await res.json();
-
-      if (Array.isArray(json.dados) && json.dados.length > 0) {
-        for (const item of json.dados) {
-          yield item;
-          recebidos++;
-        }
+export async function* getAdministradores(token) {
+  try {
+    const res = await ky.post(
+      'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        json: {
+          filtro: { ativo: true },
+          paginacao: null,
+        },
+        timeout: 60000,
+        retry: { limit: 5 },
       }
-      
-      paginaAtual++;
-      continuar = recebidos < (json.totalLinhas || 0) && json.dados.length === pag;
-    } catch (error) {
-      console.error('Erro ao obter administradores:', error.message);
-      throw error;
+    );
+    const json = await res.json();
+    if (Array.isArray(json.dados) && json.dados.length > 0) {
+      for (const item of json.dados) {
+        yield item;
+      }
     }
+  } catch (error) {
+    console.error('Erro ao obter administradores:', error.message);
+    throw error;
   }
 }
 
@@ -365,7 +340,7 @@ async function* streamTransform(source, detalhesFn, token) {
   try {
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
-    
+
     // Processa a fonte de dados e escreve na stream
     (async () => {
       try {
@@ -378,12 +353,12 @@ async function* streamTransform(source, detalhesFn, token) {
         writer.close();
       }
     })();
-    
+
     // Lê e retorna os dados processados da stream
     const reader = readable
       .pipeThrough(createTransformStream(detalhesFn, token))
       .getReader();
-      
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -439,16 +414,16 @@ async function detalhesItem(item, token, grupo, urlBase) {
       timeout: 60000,
       retry: { limit: 5 },
     });
-    
+
     const detalhes = await res.json();
     const validos = coletarValidos(detalhes);
-    
+
     for (const [k, v] of Object.entries(validos)) {
       if (!Object.prototype.hasOwnProperty.call(item, k)) {
         item[k] = v;
       }
     }
-    
+
     return item;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
@@ -457,9 +432,9 @@ async function detalhesItem(item, token, grupo, urlBase) {
   }
 }
 
-export function executarMinisterios(token, pag = 100) {
+export function executarMinisterios(token) {
   return streamTransform(
-    getMinisterios(token, pag),
+    getMinisterios(token),
     (item) =>
       detalhesItem(
         item,
@@ -471,9 +446,9 @@ export function executarMinisterios(token, pag = 100) {
   );
 }
 
-export function executarAdmin(token, pag = 100) {
+export function executarAdmin(token) {
   return streamTransform(
-    getAdministradores(token, pag),
+    getAdministradores(token),
     (item) =>
       detalhesItem(
         item,
@@ -491,19 +466,18 @@ export function executarAdmin(token, pag = 100) {
  * mesmo que algumas falhem.
  * @param {Object} options - As opções de carregamento.
  * @param {Object} options.auth - O objeto de autenticação com o token.
- * @param {number} [options.pag=100] - A quantidade de itens por página.
  * @returns {Array<Object>} Uma lista de dados consolidados e normalizados.
  */
-export async function carregarDados({ auth, pag = 100 }) {
+export async function carregarDados({ auth }) {
   const inicio = Date.now();
   const dados = [];
-  
+
   // As fontes de dados, criadas como geradores assíncronos
   const fontes = [
-    executarMinisterios(auth.token, pag),
-    executarAdmin(auth.token, pag),
+    executarMinisterios(auth.token),
+    executarAdmin(auth.token),
   ];
-  
+
   // Cria um array de promessas para iterar sobre cada fonte
   const promises = fontes.map(async (fonte) => {
     // Itera sobre a fonte e adiciona os itens aos dados
@@ -515,18 +489,18 @@ export async function carregarDados({ auth, pag = 100 }) {
   // Usa Promise.allSettled para aguardar que todas as promessas terminem,
   // independentemente do resultado (sucesso ou falha).
   const resultados = await Promise.allSettled(promises);
-  
+
   // Itera sobre os resultados para logar quaisquer falhas
   resultados.forEach((res, index) => {
     if (res.status === 'rejected') {
       console.error(`A fonte de dados na posição ${index} falhou. Motivo:`, res.reason);
     }
   });
-  
+
   const fim = Date.now();
   const minutos = ((fim - inicio) / 60000).toFixed(2);
   console.log(`Tempo gasto carregarDados: ${minutos} minutos`);
-  
+
   try {
     // Chama dadosPDO para processar os dados coletados.
     return dadosPDO(dados);
@@ -536,17 +510,3 @@ export async function carregarDados({ auth, pag = 100 }) {
     return dados;
   }
 }
-
-// Exemplo de uso (descomente para testar)
-/*
-const token = 'seu-token-aqui'; // Substitua pelo seu token real
-carregarDados({ auth: { token, pag: 1 } })
-  .then((e) => {
-    console.log('Dados carregados:', e.length);
-    console.log('Primeiro ministério:', e.find((i) => i.grupo === 'Ministério'));
-    console.log('Primeiro administrador:', e.find((i) => i.grupo === 'Administrador'));
-  })
-  .catch((error) => {
-    console.error('Erro geral na execução:', error);
-  });
-*/

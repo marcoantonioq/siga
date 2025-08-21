@@ -735,7 +735,14 @@
             form.value.auth.cookies = saved.auth.cookies;
           if (saved.date1) form.value.date1 = saved.date1;
           if (saved.date2) form.value.date2 = saved.date2;
-          if (saved.options) form.value.options = saved.options;
+          if (saved.options) {
+            saved.options.forEach(savedOption => {
+              const formOption = form.value.options.find(o => o.id === savedOption.id);
+              if (formOption) {
+                formOption.active = savedOption.active;
+              }
+            });
+          }
         }
 
         const lastCookies = ref('');

@@ -73,29 +73,29 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
         return { name: name.trim(), value: value?.trim(), domain, path: '/' };
       });
       await page.setCookie(...parsedCookies);
-    } catch (error) {
-      throw new Error('Cookies inválidos!!!');
-    }
 
-    await page.goto('https://siga.congregacao.org.br/SIS/SIS99908.aspx', {
-      timeout: 60000,
-      waitUntil: 'networkidle0',
-    });
-    await page.goto(
-      'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
-      {
+      await page.goto('https://siga.congregacao.org.br/SIS/SIS99908.aspx', {
         timeout: 60000,
         waitUntil: 'networkidle0',
-      }
-    );
-    result.data.page = await page.content();
+      });
+      await page.goto(
+        'https://siga.congregacao.org.br/SIS/SIS99906.aspx?f_inicio=S',
+        {
+          timeout: 60000,
+          waitUntil: 'networkidle0',
+        }
+      );
+      result.data.page = await page.content();
 
-    result.data.token = await page.evaluate(() =>
-      window.localStorage.getItem('ccbsiga-token-api')
-    );
+      result.data.token = await page.evaluate(() =>
+        window.localStorage.getItem('ccbsiga-token-api')
+      );
 
-    result.success = true;
-    result.message = 'Login realizado com sucesso.';
+      result.success = true;
+      result.message = 'Login realizado com sucesso.';
+    } catch (error) {
+      throw new Error('Error Cookies: ' + (error.message || error));
+    }
   } catch (error) {
     console.error('Erro ao criar diretório do usuário:', userDir, error);
     result.message =
@@ -103,7 +103,7 @@ export async function login(cookies, domain = 'siga.congregacao.org.br') {
       'Erro ao acessar o SIGA. Verifique o sistema SIGA ou cookies informados!';
     throw new Error(
       error.message ||
-        'Erro ao acessar o SIGA. Verifique o sistema SIGA ou cookies informados!'
+      'Erro ao acessar o SIGA. Verifique o sistema SIGA ou cookies informados!'
     );
   } finally {
     if (page && !page.isClosed()) {

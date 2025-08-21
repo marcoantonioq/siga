@@ -1,14 +1,15 @@
-import { getOfertas, } from "../infra/express/app/siga/fluxos.js";
+import ky from "ky";
+import { carregarDados } from "../infra/express/app/siga/carregarDados.js";
 
 async function start() {
-  const values = await getOfertas({
-    cookies: "",
-    antixsrftoken: ""
-  }, {
-    IGREJA_COD: 345,
-  }, "2025-07-01", "2025-08-18");
-  console.log("Valores:", values);
-
+  const token = ""
+  const values = await carregarDados({
+    auth: {
+      token
+    },
+  });
+  console.log("Valores ministério:", values.filter(e => e.grupo === "Ministério").length);
+  console.log("Valores administração:", values.filter(e => e.grupo === "Administrador").length);
 }
 
 start();
