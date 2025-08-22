@@ -80,6 +80,17 @@ const getApiData = async (token, url) => {
   }
 };
 
+function mesclarSemSobrescrever(destino, origem) {
+  const novoObjeto = { ...destino
+  };
+  for (const chave in origem) {
+    if (!novoObjeto[chave]) {
+      novoObjeto[chave] = origem[chave];
+    }
+  }
+  return novoObjeto;
+}
+
 /**
  * Obtém detalhes de um item da API de detalhes.
  * @param {Object} item - O item inicial.
@@ -99,7 +110,7 @@ const getDetalhesItem = async (item, token, grupo, urlBase) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();
-    const dadosCompletos = { ...item, grupo, ...coletarValidos(detalhes) };
+    const dadosCompletos = mesclarSemSobrescrever({ ...item, grupo},...coletarValidos(detalhes)), ;
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
