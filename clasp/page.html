@@ -405,6 +405,7 @@
             { id: 'eventos', label: 'Eventos', active: false },
             { id: 'dados', label: 'Dados', active: false },
             { id: 'solicitacoes', label: 'Solicitações', active: false },
+            { id: 'preventiva', label: 'Manutenção Preventiva', active: false },
           ],
           adms: [],
         });
@@ -415,6 +416,7 @@
           ofertas: [],
           dados: [],
           solicitacoes: [],
+          preventiva: [],
         });
         let socket;
 
@@ -471,11 +473,19 @@
           }
         }
 
+        function clearTablesProcess() {
+          for (const key in tables.value) {
+            if (options.value.includes(key))
+              tables.value[key] = [];
+          }
+        }
+
         async function loadData() {
           if (!validarCampos()) return;
           app.value.loading = true;
           try {
             await carregarIgrejas();
+            clearTablesProcess()
             for (const adm of form.value.adms) {
               if (!adm.active) continue;
               adm.loading = true;
@@ -488,18 +498,21 @@
                       igreja: igreja,
                       auth: form.value.auth,
                     });
+                    await getToken(form.value.auth)
                     show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await Promise.all([
                       await carregarEventos(igreja),
                       await carregarFluxos(igreja),
                     ])
                     await carregarOfertas(igreja);
+                    await carregarPreventiva(igreja);
                   } else if (igreja.IGREJA_TIPO === 11) {
                     show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await empresaAlterar({
                       igreja: igreja,
                       auth: form.value.auth,
                     });
+                    await getToken(form.value.auth)
                     await carregarDados(igreja);
                     await carregarSolicitacoes(igreja);
                   }
@@ -549,6 +562,21 @@
               app.value.loadingTable.login = false;
               reject(err);
             });
+          });
+        }
+
+        function getToken() {
+          return new Promise((resolve, reject) => {
+            socket.emit(
+              'token',
+              { cookies: form.value.auth.cookies },
+              async (values) => {
+                if (values.token) {
+                  form.value.auth.token = values.token;
+                }
+                resolve(values);
+              }
+            );
           });
         }
 
@@ -612,7 +640,7 @@
             socket.emit(nome, payload, (res) => {
               if (loadingKey) app.value.loadingTable[loadingKey] = false;
               if (res?.status) {
-                if (tabela) tables.value[tabela] = JSON.parse(res.data);
+                if (tabela) tables.value[tabela].push(...JSON.parse(res.data));
                 resolve(res);
               } else {
                 reject(res?.message || 'Erro desconhecido');
@@ -702,8 +730,6 @@
 
         function carregarSolicitacoes(adm) {
           if (!options.value.includes('solicitacoes')) return Promise.resolve();
-          console.log("Estou carregando solicitações para:", adm);
-
           const payload = {
             auth: form.value.auth,
             empresa: adm,
@@ -713,13 +739,32 @@
           return emitir('solicitacoes', payload, 'solicitacoes', 'solicitacoes');
         }
 
+        function carregarPreventiva(adm) {
+          if (!options.value.includes('preventiva')) return Promise.resolve();
+          const payload = {
+            auth: form.value.auth,
+            empresa: adm,
+            date1: form.value.date1,
+            date2: form.value.date2,
+          };
+          console.log("Carregado dados: ", payload);
+          return emitir('preventiva', payload, 'preventiva', 'preventiva');
+        }
+
         function carregarLocalStorage() {
           const saved = JSON.parse(localStorage.getItem('siga.data') || '{}');
           if (saved.auth?.cookies)
             form.value.auth.cookies = saved.auth.cookies;
           if (saved.date1) form.value.date1 = saved.date1;
           if (saved.date2) form.value.date2 = saved.date2;
-          if (saved.options) form.value.options = saved.options;
+          if (saved.options) {
+            saved.options.forEach(savedOption => {
+              const formOption = form.value.options.find(o => o.id === savedOption.id);
+              if (formOption) {
+                formOption.active = savedOption.active;
+              }
+            });
+          }
         }
 
         const lastCookies = ref('');

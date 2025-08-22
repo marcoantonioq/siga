@@ -1,18 +1,11 @@
 #!/bin/bash
 
-# set -e  # Para o script se qualquer comando falhar
+cd /app
 
 echo "🔄 Verificando atualizações do repositório..."
 git config pull.ff only
-
-# Faz fetch de todos os remotos e puxa o branch atual
-git reset --hard 
 git fetch --all
 git pull
-
-# Permissão de execução para o script
-echo "🔧 Ajustando permissões do script..."
-chmod +x /app/start.sh
 
 # Cria rede Docker se não existir
 # if ! docker network inspect dockers >/dev/null 2>&1; then
@@ -22,10 +15,9 @@ chmod +x /app/start.sh
 #   echo "✅ Rede Docker 'dockers' já existe."
 # fi
 
-# Instala dependências se necessário
 echo "📦 Instalando dependências..."
 npm install
 
-# Inicia o servidor
 echo "🚀 Iniciando servidor..."
-npm start
+npx nodemon src/index.js
+# node src/index.js

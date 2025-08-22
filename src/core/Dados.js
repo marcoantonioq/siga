@@ -36,7 +36,6 @@
  * @property {string} telefoneRecado - Número de telefone para recados.
  * @property {string} endereco - Endereço do servo.
  * @property {string} bairro - Bairro do servo.
- * @property {string} cidade - Cidade do servo.
  * @property {string} cep - CEP do servo.
  * @property {string} email1 - E-mail 1 do servo.
  * @property {string} email2 - E-mail 2 do servo.
