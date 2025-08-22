@@ -110,7 +110,7 @@ const getDetalhesItem = async (item, token, grupo, urlBase) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();
-    const dadosCompletos = mesclarSemSobrescrever({ ...item, grupo},...coletarValidos(detalhes));
+    const dadosCompletos = mesclarSemSobrescrever({ ...item, grupo}, coletarValidos(detalhes));
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
