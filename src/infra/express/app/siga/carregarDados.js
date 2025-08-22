@@ -8,7 +8,9 @@ import ky from 'ky';
  * @returns {*} O valor limpo.
  */
 const limparValor = (value) => {
-  return typeof value === 'string' ? value.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim() : value;
+  return typeof value === 'string'
+    ? value.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim()
+    : value;
 };
 
 /**
@@ -18,9 +20,10 @@ const limparValor = (value) => {
  */
 const formatPhoneNumberDD = (phoneNumberString) => {
   if (typeof phoneNumberString !== 'string') return '';
-  return phoneNumberString.replace(/[^\d]/g, '').replace(/^55(\d{2})(\d{8,})$/, '$1$2');
+  return phoneNumberString
+    .replace(/[^\d]/g, '')
+    .replace(/^55(\d{2})(\d{8,})$/, '$1$2');
 };
-
 
 /**
  * Coleta valores válidos de um objeto, incluindo detalhes aninhados.
@@ -32,14 +35,21 @@ const coletarValidos = (detalhesItem, out = {}) => {
   if (typeof detalhesItem !== 'object' || detalhesItem === null) return out;
 
   for (const [key, value] of Object.entries(detalhesItem)) {
-    if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) {
+    if (
+      value == null ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
       continue;
     }
 
     const valueType = typeof value;
     if (['string', 'number', 'boolean'].includes(valueType)) {
       out[key] = out[key] ?? value;
-    } else if (value instanceof Date || (!isNaN(Date.parse(value)) && valueType === 'string')) {
+    } else if (
+      value instanceof Date ||
+      (!isNaN(Date.parse(value)) && valueType === 'string')
+    ) {
       out[key] = out[key] ?? new Date(value);
     } else if (Array.isArray(value)) {
       value.forEach((item) => {
@@ -81,8 +91,7 @@ const getApiData = async (token, url) => {
 };
 
 function mesclarSemSobrescrever(destino, origem) {
-  const novoObjeto = { ...destino
-  };
+  const novoObjeto = { ...destino };
   for (const chave in origem) {
     if (!novoObjeto[chave]) {
       novoObjeto[chave] = origem[chave];
@@ -101,16 +110,25 @@ function mesclarSemSobrescrever(destino, origem) {
  */
 const getDetalhesItem = async (item, token, grupo, urlBase) => {
   try {
-    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${item.codigoRelac || ''}`;
+    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${
+      item.codigoRelac || ''
+    }`;
     const res = await ky.get(url, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
       timeout: 60000,
       retry: { limit: 5 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();
-    const dadosCompletos = mesclarSemSobrescrever({ ...item, grupo}, coletarValidos(detalhes));
+    // console.log('Dados: ', item, detalhes);
+    const dadosCompletos = mesclarSemSobrescrever(
+      { ...item, grupo },
+      coletarValidos(detalhes)
+    );
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
@@ -155,32 +173,91 @@ export const dadosPDO = (lista = []) => {
   }
 
   const aliases = {
-    nomerrm: 'nomeRRM', nomeRrm: 'nomeRRM', nomeRegional: 'nomeRRM',
-    codigoRrm: 'codigoRRM', codigoAdministracao: 'codigoAdm',
-    nomeAdministracao: 'nomeADM', nomeRa: 'nomeADM', nomeRA: 'nomeADM',
-    dataOrdenacaoServo: 'dataOrdenacao', dataApresentacao: 'dataOrdenacao',
-    ministerioCargo: 'cargo', nomeMinisterioCargo: 'cargo',
-    codigoMinisterioCargo: 'codigoFuncao', codigoServoMinisterioCargo: 'codigoFuncao',
+    nomerrm: 'nomeRRM',
+    nomeRrm: 'nomeRRM',
+    nomeRegional: 'nomeRRM',
+    codigoRrm: 'codigoRRM',
+    codigoAdministracao: 'codigoAdm',
+    nomeAdministracao: 'nomeADM',
+    nomeRa: 'nomeADM',
+    nomeRA: 'nomeADM',
+    dataOrdenacaoServo: 'dataOrdenacao',
+    dataApresentacao: 'dataOrdenacao',
+    ministerioCargo: 'cargo',
+    nomeMinisterioCargo: 'cargo',
+    codigoMinisterioCargo: 'codigoFuncao',
+    codigoServoMinisterioCargo: 'codigoFuncao',
     numeroIdentificacao1: 'documento',
   };
 
   const ordem = [
-    'grupo', 'nome', 'sexo', 'dataBatismo', 'dataNascimento', 'telefoneCasa', 'telefoneCelular', 'telefoneTrabalho',
-    'telefoneRecado', 'endereco', 'bairro', 'cep', 'email1', 'email2', 'eventos', 'dataOrdenacao', 'cargo',
-    'administrador', 'nomeRA', 'nomeAdministracao', 'documento', 'nomeRRM', 'nomeIgreja', 'comum', 'pais', 'estado',
-    'cidade', 'aprovadorRrm', 'statusCadastroCompleto', 'ativo', 'indicadorFoto', 'fotoUrl', 'regional',
-    'dataVencimentoMandato', 'statusMandato', 'qsa', 'numeroIdentificacao1', 'naoAtuando', 'dataAGO', 'codigo',
-    'codigoServo', 'codigoRelac', 'codigoFuncao', 'codigoAdministracao', 'codigoRRM', 'codigoRegional',
-    'codigoIgreja', 'codigoSexo', 'numeroPosicaoIgreja',
+    'grupo',
+    'nome',
+    'sexo',
+    'dataBatismo',
+    'dataNascimento',
+    'telefoneCasa',
+    'telefoneCelular',
+    'telefoneTrabalho',
+    'telefoneRecado',
+    'endereco',
+    'bairro',
+    'cep',
+    'email1',
+    'email2',
+    'eventos',
+    'dataOrdenacao',
+    'cargo',
+    'administrador',
+    'nomeRA',
+    'nomeAdministracao',
+    'documento',
+    'nomeRRM',
+    'nomeIgreja',
+    'comum',
+    'pais',
+    'estado',
+    'cidade',
+    'aprovadorRrm',
+    'statusCadastroCompleto',
+    'ativo',
+    'indicadorFoto',
+    'fotoUrl',
+    'regional',
+    'dataVencimentoMandato',
+    'statusMandato',
+    'qsa',
+    'numeroIdentificacao1',
+    'naoAtuando',
+    'dataAGO',
+    'codigo',
+    'codigoServo',
+    'codigoRelac',
+    'codigoFuncao',
+    'codigoAdministracao',
+    'codigoRRM',
+    'codigoRegional',
+    'codigoIgreja',
+    'codigoSexo',
+    'numeroPosicaoIgreja',
   ];
 
   const padroes = {
-    eventos: [], ativo: false, aprovadorRrm: false, indicadorFoto: false,
-    administrador: false, qsa: false, naoAtuando: false,
+    eventos: [],
+    ativo: false,
+    aprovadorRrm: false,
+    indicadorFoto: false,
+    administrador: false,
+    qsa: false,
+    naoAtuando: false,
   };
 
   const datas = new Set([
-    'dataOrdenacao', 'dataVencimentoMandato', 'dataBatismo', 'dataNascimento', 'dataAGO',
+    'dataOrdenacao',
+    'dataVencimentoMandato',
+    'dataBatismo',
+    'dataNascimento',
+    'dataAGO',
   ]);
 
   const normalizados = lista.map((item) => {
@@ -201,7 +278,12 @@ export const dadosPDO = (lista = []) => {
     ...ordem.filter((k) => usados.has(k)),
     ...[...usados].filter((k) => !ordem.includes(k)),
   ].filter((k) =>
-    normalizados.some((item) => item[k] != null && item[k] !== '' && !(Array.isArray(item[k]) && item[k].length === 0))
+    normalizados.some(
+      (item) =>
+        item[k] != null &&
+        item[k] !== '' &&
+        !(Array.isArray(item[k]) && item[k].length === 0)
+    )
   );
 
   return normalizados.map((item) => {
@@ -209,7 +291,10 @@ export const dadosPDO = (lista = []) => {
       colunas.map((k) => {
         let valor;
         if (Object.prototype.hasOwnProperty.call(item, k)) {
-          valor = datas.has(k) && item[k] ? new Date(item[k]).toISOString().slice(0, 19).replace('T', ' ') : item[k];
+          valor =
+            datas.has(k) && item[k]
+              ? new Date(item[k]).toISOString().slice(0, 19).replace('T', ' ')
+              : item[k];
         } else {
           valor = padroes[k] ?? (datas.has(k) ? null : '');
         }
@@ -217,13 +302,26 @@ export const dadosPDO = (lista = []) => {
       })
     );
     try {
-      if (resultado.telefoneCasa) resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
-      if (resultado.telefoneCelular) resultado.telefoneCelular = formatPhoneNumberDD(resultado.telefoneCelular);
-      if (resultado.telefoneTrabalho) resultado.telefoneTrabalho = formatPhoneNumberDD(resultado.telefoneTrabalho);
-      if (resultado.telefoneRecado) resultado.telefoneRecado = formatPhoneNumberDD(resultado.telefoneRecado);
-      if (typeof resultado.nomeRA === 'string') resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
-      if (typeof resultado.nomeRRM === 'string') resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
-      if (typeof resultado.nomeADM === 'string') resultado.nomeADM = resultado.nomeADM.replace(' - GO', '').trim();
+      if (resultado.telefoneCasa)
+        resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
+      if (resultado.telefoneCelular)
+        resultado.telefoneCelular = formatPhoneNumberDD(
+          resultado.telefoneCelular
+        );
+      if (resultado.telefoneTrabalho)
+        resultado.telefoneTrabalho = formatPhoneNumberDD(
+          resultado.telefoneTrabalho
+        );
+      if (resultado.telefoneRecado)
+        resultado.telefoneRecado = formatPhoneNumberDD(
+          resultado.telefoneRecado
+        );
+      if (typeof resultado.nomeRA === 'string')
+        resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
+      if (typeof resultado.nomeRRM === 'string')
+        resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
+      if (typeof resultado.nomeADM === 'string')
+        resultado.nomeADM = resultado.nomeADM.replace(' - GO', '').trim();
     } catch (error) {
       console.error('Erro ao formatar dados:', error, resultado);
     }
@@ -248,19 +346,33 @@ export const carregarDados = async ({ auth }) => {
   try {
     // 1. Coleta inicial de dados em paralelo
     const [ministerios, administradores] = await Promise.all([
-      getApiData(token, 'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela'),
-      getApiData(token, 'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela'),
+      getApiData(
+        token,
+        'https://siga-api.congregacao.org.br/api/rel/rel032/dados/tabela'
+      ),
+      getApiData(
+        token,
+        'https://siga-api.congregacao.org.br/api/rel/rel034/dados/tabela'
+      ),
     ]);
 
     // 2. Processamento dos detalhes de cada lista em paralelo
     const [detalhesMinisterios, detalhesAdministradores] = await Promise.all([
-      processarEmLotes(
-        ministerios,
-        (item) => getDetalhesItem(item, token, 'Ministério', 'https://siga-api.congregacao.org.br/api/rel/rel032/servo/visualizar'),
+      processarEmLotes(ministerios, (item) =>
+        getDetalhesItem(
+          item,
+          token,
+          'Ministério',
+          'https://siga-api.congregacao.org.br/api/rel/rel032/servo/visualizar'
+        )
       ),
-      processarEmLotes(
-        administradores,
-        (item) => getDetalhesItem(item, token, 'Administrador', 'https://siga-api.congregacao.org.br/api/rel/rel034/servo/visualizar'),
+      processarEmLotes(administradores, (item) =>
+        getDetalhesItem(
+          item,
+          token,
+          'Administrador',
+          'https://siga-api.congregacao.org.br/api/rel/rel034/servo/visualizar'
+        )
       ),
     ]);
 
