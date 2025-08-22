@@ -30,7 +30,7 @@ const formatPhoneNumberDD = (phoneNumberString) => {
  */
 const coletarValidos = (detalhesItem, out = {}) => {
   if (typeof detalhesItem !== 'object' || detalhesItem === null) return out;
-  
+
   for (const [key, value] of Object.entries(detalhesItem)) {
     if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) {
       continue;
@@ -51,7 +51,7 @@ const coletarValidos = (detalhesItem, out = {}) => {
       coletarValidos(value, out);
     }
   }
-  
+
   return out;
 };
 
@@ -65,10 +65,12 @@ const coletarValidos = (detalhesItem, out = {}) => {
 const getApiData = async (token, url) => {
   try {
     const res = await ky.post(url, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json, text/plain, */*',
+      },
       json: { filtro: { ativo: true }, paginacao: null },
       timeout: 60000,
-      retry: { limit: 5 },
     });
     const { dados } = await res.json();
     return Array.isArray(dados) ? dados : [];
@@ -210,6 +212,7 @@ export const dadosPDO = (lista = []) => {
       if (resultado.telefoneRecado) resultado.telefoneRecado = formatPhoneNumberDD(resultado.telefoneRecado);
       if (typeof resultado.nomeRA === 'string') resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
       if (typeof resultado.nomeRRM === 'string') resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
+      if (typeof resultado.nomeADM === 'string') resultado.nomeADM = resultado.nomeADM.replace(' - GO', '').trim();
     } catch (error) {
       console.error('Erro ao formatar dados:', error, resultado);
     }

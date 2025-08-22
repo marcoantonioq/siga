@@ -498,8 +498,8 @@
                       igreja: igreja,
                       auth: form.value.auth,
                     });
-                    show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await getToken(form.value.auth)
+                    show.success(`Carregando dados para ${igreja.IGREJA_DESC}...`, 2000);
                     await Promise.all([
                       await carregarEventos(igreja),
                       await carregarFluxos(igreja),
@@ -512,6 +512,7 @@
                       igreja: igreja,
                       auth: form.value.auth,
                     });
+                    await getToken(form.value.auth)
                     await carregarDados(igreja);
                     await carregarSolicitacoes(igreja);
                   }
@@ -570,7 +571,9 @@
               'token',
               { cookies: form.value.auth.cookies },
               async (values) => {
-                form.value.auth.token = values.token;
+                if (values.token) {
+                  form.value.auth.token = values.token;
+                }
                 resolve(values);
               }
             );
