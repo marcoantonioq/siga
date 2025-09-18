@@ -17,11 +17,11 @@ export async function executeKyRequest(requestFunction) {
             const url = request.url;
             const method = request.method;
             const status = response.status;
-            let errorBody = 'Corpo da resposta de erro não pôde ser lido.';
+            let errorBody = 'N/A';
             try {
                 errorBody = await response.text();
             } catch {}
-            const errorMessage = `Erro na requisição! URL: ${url} | Método: ${method} | Status: ${status} | Corpo: ${errorBody}`;
+            const errorMessage = `Erro na requisição! URL: ${url} | Método: ${method} | Status: ${status} | Corpo: ${errorBody.slice(0, 100)}`;
             console.error(errorMessage);
         }
         throw error;
