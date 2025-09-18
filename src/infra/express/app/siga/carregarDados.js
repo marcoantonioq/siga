@@ -1,5 +1,6 @@
 // @ts-nocheck
 import ky from 'ky';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 // --- Funções Auxiliares de Tratamento de Dados ---
 /**
@@ -74,14 +75,14 @@ const coletarValidos = (detalhesItem, out = {}) => {
  */
 const getApiData = async (token, url) => {
   try {
-    const res = await ky.post(url, {
+    const res = await executeKyRequest(() => ky.post(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json, text/plain, */*',
       },
       json: { filtro: { ativo: true }, paginacao: null },
       timeout: 60000,
-    });
+    }));
     const { dados } = await res.json();
     return Array.isArray(dados) ? dados : [];
   } catch (error) {
@@ -110,17 +111,16 @@ function mesclarSemSobrescrever(destino, origem) {
  */
 const getDetalhesItem = async (item, token, grupo, urlBase) => {
   try {
-    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${
-      item.codigoRelac || ''
-    }`;
-    const res = await ky.get(url, {
+    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${item.codigoRelac || ''
+      }`;
+    const res = await executeKyRequest(() => ky.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       timeout: 60000,
       retry: { limit: 5 },
-    });
+    }));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();

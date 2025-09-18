@@ -1,4 +1,5 @@
 import ky from 'ky';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 const url = 'https://siga.congregacao.org.br/RH/RH00201.asmx/SelecionarAnonimizado';
 
@@ -30,11 +31,11 @@ const jsonBody = {
 
 (async () => {
   try {
-    const response = await ky.post(url, {
+    const response = await executeKyRequest(() => ky.post(url, {
       headers,
       json: jsonBody,
       timeout: 600000
-    });
+    }));
 
     const data = await response.json();
     console.log(JSON.stringify(data, null, 2));

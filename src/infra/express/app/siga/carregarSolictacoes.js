@@ -1,4 +1,5 @@
 import ky from 'ky';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 export async function carregarSolicitacoes({ auth }) {
   const url = 'https://siga-api.congregacao.org.br/api/rel/rel031/dados/tabela';
@@ -38,7 +39,7 @@ export async function carregarSolicitacoes({ auth }) {
       };
 
       try {
-        const response = await ky.post(url, {
+        const response = await executeKyRequest(() => ky.post(url, {
           headers: {
             Authorization: `Bearer ${auth.token}`,
             'Content-Type': 'application/json',
@@ -46,7 +47,7 @@ export async function carregarSolicitacoes({ auth }) {
           json: body,
           retry: { limit: 5 },
           timeout: 60000,
-        });
+        }));
         const data = await response.json();
         if (Array.isArray(data.dados)) {
           resultados = resultados.concat(data.dados);

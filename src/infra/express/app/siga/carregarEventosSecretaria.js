@@ -1,12 +1,13 @@
 import ky from 'ky';
 
 import { Evento } from '../../../../core/Evento.js';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 export async function carregarEventosSecretaria(values) {
   const { auth, igreja, date1, date2 } = values;
   const eventos = [];
   try {
-    const response = await ky.post(
+    const response = await executeKyRequest(() => ky.post(
       'https://siga.congregacao.org.br/REL/REL01701.asmx/SelecionarVW',
       {
         headers: {
@@ -33,7 +34,7 @@ export async function carregarEventosSecretaria(values) {
         retry: { limit: 5 },
         timeout: 60000,
       }
-    );
+    ));
     const code = response.status;
     const data = await response.json();
 

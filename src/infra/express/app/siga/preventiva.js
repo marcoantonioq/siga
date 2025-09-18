@@ -1,10 +1,11 @@
 import ky from "ky";
+import { executeKyRequest } from "../../../http/executeKyRequest.js";
 
 const request = ky.create({ retry: { limit: 5 }, timeout: 60000 });
 
 export async function preventiva({ auth, date1, date2 }) {
   try {
-    const response = await request.post(
+    const response = await executeKyRequest(() => request.post(
       "https://siga-api.congregacao.org.br/api/mnt/mnt003/dados/tabela",
       {
         json: {
@@ -22,7 +23,7 @@ export async function preventiva({ auth, date1, date2 }) {
           Authorization: `Bearer ${auth.token}`,
         },
       }
-    ).json();
+    ).json());
     const todos = response.dados || [];
     return todos;
   } catch (error) {
