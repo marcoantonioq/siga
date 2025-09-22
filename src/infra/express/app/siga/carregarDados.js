@@ -208,7 +208,13 @@ export const carregarDados = async ({ auth }) => {
     ]);
 
     // 3. Combinação e normalização dos dados
-    const dadosCompletos = [...detalhesMinisterios, ...detalhesAdministradores];
+    const dadosCompletos = [...detalhesMinisterios.map(e => {
+      e.administrador = 'NÃO';
+      return e
+    }), ...detalhesAdministradores.map(e => {
+      e.administrador = 'SIM';
+      return e
+    })];
 
     const fim = Date.now();
     const minutos = ((fim - inicio) / 60000).toFixed(2);

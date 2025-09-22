@@ -641,7 +641,7 @@
           },
           formated: {
             dados: {
-              order: ['grupo', 'nome', 'sexo', 'dataBatismo', 'dataNascimento', 'telefoneCasa', 'telefoneCelular', 'telefoneTrabalho', 'telefoneRecado', 'endereco', 'bairro', 'cep', 'email1', 'email2', 'eventos', 'dataOrdenacao', 'cargo', 'administrador', 'nomeRA', 'nomeAdministracao', 'documento', 'nomeRRM', 'nomeIgreja', 'comum', 'pais', 'estado', 'cidade', 'aprovadorRrm', 'statusCadastroCompleto', 'ativo', 'indicadorFoto', 'fotoUrl', 'regional', 'dataVencimentoMandato', 'statusMandato', 'qsa', 'numeroIdentificacao1', 'naoAtuando', 'dataAGO', 'codigo', 'codigoServo', 'codigoRelac', 'codigoFuncao', 'codigoAdministracao', 'codigoRRM', 'codigoRegional', 'codigoIgreja', 'codigoSexo', 'numeroPosicaoIgreja',],
+              order: ['grupo', 'nome', 'sexo', 'dataNascimento', 'telefoneCasa', 'telefoneCelular', 'telefoneTrabalho', 'endereco', 'bairro', 'cep', 'email1', 'email2', 'dataOrdenacao', 'cargo', 'administrador', 'documento', 'nomeRRM', 'nomeIgreja', 'comum', 'pais', 'estado', 'cidade', 'aprovadorRrm', 'statusCadastroCompleto', 'ativo', 'indicadorFoto', 'dataVencimentoMandato', 'statusMandato', 'qsa', 'naoAtuando', 'codigo', 'codigoServo', 'codigoRelac', 'codigoFuncao', 'codigoRRM', 'codigoRegional', 'codigoIgreja', 'codigoSexo', 'numeroPosicaoIgreja', 'codigoAdm', 'nomeADM', 'naoPublicarRelatorio', 'codigoServoOrdenacao', 'numeroIdentificacao2', 'codigoPaisPrefixoTelefone'],
               alias: {
                 nomerrm: 'nomeRRM',
                 nomeRrm: 'nomeRRM',
@@ -651,6 +651,7 @@
                 nomeAdministracao: 'nomeADM',
                 nomeRa: 'nomeADM',
                 nomeRA: 'nomeADM',
+                cidade: 'nomeADM',
                 dataOrdenacaoServo: 'dataOrdenacao',
                 dataApresentacao: 'dataOrdenacao',
                 ministerioCargo: 'cargo',
@@ -671,6 +672,7 @@
               if (res?.status) {
                 if (tabela) {
                   const datas = new Set(settings.types.datas);
+
                   const telefones = new Set(settings.types.telefones);
 
                   const formatPhoneNumberDD = (phoneNumberString) => {
@@ -700,6 +702,7 @@
                       }
                       return item;
                     })
+                  console.log("Dados carregados: ", values);
 
                   const formatSettings = settings.formated[tabela];
                   if (formatSettings) {
