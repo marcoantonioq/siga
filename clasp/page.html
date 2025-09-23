@@ -697,7 +697,6 @@
                         } else if (datas.has(key)) {
                           item[key] = new Date(item[key]).toISOString().slice(0, 19).replace('T', ' ');
                         } else if (typeof item[key] === 'string' && item[key].endsWith(' - GO')) {
-                          console.log("Removendo - GO ", key);
                           item[key] = item[key].replace(/ - GO$/, '').trim();
                         }
                       }
