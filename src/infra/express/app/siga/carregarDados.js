@@ -131,7 +131,6 @@ const getDetalhesItem = async (item, token, grupo, urlBase) => {
     if (!dadosCompletos.cidade) {
       dadosCompletos.cidade = dadosCompletos.nomeIgreja.replace(/^BR-\d+-\d+ - /, '')
     }
-    console.log('Dados: ', dadosCompletos);
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
