@@ -57,10 +57,10 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
       f_fornecedor: '',
       f_formato: 'https://siga-rpt.congregacao.org.br/TES/TES00902.aspx',
       f_saidapara: 'Excel',
-      f_agrupar: 'CentrodeCustoSetor',
+      f_agrupar: 'CentrodeCusto',
       __initPage__: 'S',
     };
-    const reportResponse = await executeKyRequest(() => ky.get(`https://siga-rpt.congregacao.org.br/TES/TES00902.aspx?${new URLSearchParams(params).toString()}`, { headers: headersBase }));
+    const reportResponse = await executeKyRequest(() => ky.get(`https://siga-rpt.congregacao.org.br/TES/TES00902?${new URLSearchParams(params).toString()}`, { headers: headersBase }));
     const contentType = reportResponse.headers.get('content-type');
     if (contentType && contentType.includes('application/vnd.ms-excel')) {
       const buffer = await (await reportResponse.blob()).arrayBuffer();
