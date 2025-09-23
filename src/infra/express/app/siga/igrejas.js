@@ -37,8 +37,8 @@ export async function igrejas({ empresas = [], auth = null }) {
               IGREJA: i['Nome'],
               IGREJA_DESC: i['NomeExibicao'],
               IGREJA_TIPO: i['CodigoTipoEstabelecimento'],
-              IGREJA_ADM: e.description.replace(' - GO', ''),
-              REGIONAL: e.regional.replace(' - GO', ''),
+              IGREJA_ADM: e.description,
+              REGIONAL: e.regional,
               UNIDADE_COD: i['CodigoEmpresa'],
               MEMBROS: 0,
             })
