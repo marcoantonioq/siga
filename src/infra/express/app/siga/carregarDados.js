@@ -124,11 +124,14 @@ const getDetalhesItem = async (item, token, grupo, urlBase) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();
-    // console.log('Dados: ', item, detalhes);
     const dadosCompletos = mesclarSemSobrescrever(
       { ...item, grupo },
       coletarValidos(detalhes)
     );
+    if (!dadosCompletos.cidade) {
+      dadosCompletos.cidade = dadosCompletos.nomeIgreja.replace(/^BR-\d+-\d+ - /, '')
+    }
+    console.log('Dados: ', dadosCompletos);
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);

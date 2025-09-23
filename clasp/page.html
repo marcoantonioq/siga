@@ -651,7 +651,6 @@
                 nomeAdministracao: 'nomeADM',
                 nomeRa: 'nomeADM',
                 nomeRA: 'nomeADM',
-                cidade: 'nomeADM',
                 dataOrdenacaoServo: 'dataOrdenacao',
                 dataApresentacao: 'dataOrdenacao',
                 ministerioCargo: 'cargo',
@@ -664,72 +663,75 @@
           }
         }
 
+        function formatedValues(itens, tabela, nome) {
+          let values = itens
+          const datas = new Set(settings.types.datas);
+
+          const telefones = new Set(settings.types.telefones);
+
+          const formatPhoneNumberDD = (phoneNumberString) => {
+            if (typeof phoneNumberString !== 'string') return '';
+            return phoneNumberString
+              .replace(/[^\d]/g, '')
+              .replace(/^55(\d{2})(\d{8,})$/, '$1$2');
+          };
+
+          const limparValor = (value) => {
+            return typeof value === 'string'
+              ? value.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim()
+              : value;
+          };
+
+          values
+            .forEach(item => {
+              for (const key in item) {
+                item[key] = limparValor(item[key]);
+                if (telefones.has(key)) {
+                  item[key] = formatPhoneNumberDD(item[key]);
+                } else if (datas.has(key)) {
+                  item[key] = new Date(item[key]).toISOString().slice(0, 19).replace('T', ' ');
+                } else if (typeof item[key] === 'string' && item[key].endsWith(' - GO')) {
+                  item[key] = item[key].replace(/ - GO$/, '').trim();
+                }
+              }
+              return item;
+            })
+
+          const formatSettings = settings.formated[tabela];
+          if (formatSettings) {
+            if (formatSettings.alias) {
+              values = values.map(item => {
+                const newItem = {};
+                for (const key in item) {
+                  const newKey = formatSettings.alias[key] || key;
+                  if (item[key] != null && item[key] !== '') {
+                    newItem[newKey] = item[key];
+                  }
+                }
+                return newItem;
+              });
+            }
+
+            if (formatSettings.order) {
+              values = values.map(item => {
+                return formatSettings.order.reduce((acc, key) => {
+                  acc[key] = item[key] || '';
+                  return acc;
+                }, {});
+              });
+            }
+          }
+          return values
+        }
+
         function emitir(nome, payload, tabela, loadingKey) {
           return new Promise((resolve, reject) => {
             if (loadingKey) app.value.loadingTable[loadingKey] = true;
             socket.emit(nome, payload, (res) => {
               if (loadingKey) app.value.loadingTable[loadingKey] = false;
               if (res?.status) {
-                if (tabela) {
-                  const datas = new Set(settings.types.datas);
-
-                  const telefones = new Set(settings.types.telefones);
-
-                  const formatPhoneNumberDD = (phoneNumberString) => {
-                    if (typeof phoneNumberString !== 'string') return '';
-                    return phoneNumberString
-                      .replace(/[^\d]/g, '')
-                      .replace(/^55(\d{2})(\d{8,})$/, '$1$2');
-                  };
-
-                  const limparValor = (value) => {
-                    return typeof value === 'string'
-                      ? value.replace(/[\n\r\t\f\v\u200B-\u200D\uFEFF]/g, '').trim()
-                      : value;
-                  };
-
-                  let values = JSON.parse(res.data)
-                    .map(item => {
-                      for (const key in item) {
-                        item[key] = limparValor(item[key]);
-                        if (telefones.has(key)) {
-                          item[key] = formatPhoneNumberDD(item[key]);
-                        } else if (datas.has(key)) {
-                          item[key] = new Date(item[key]).toISOString().slice(0, 19).replace('T', ' ');
-                        } else if (typeof item[key] === 'string' && item[key].endsWith(' - GO')) {
-                          item[key] = item[key].replace(/ - GO$/, '').trim();
-                        }
-                      }
-                      return item;
-                    })
-                  console.log("Dados carregados: ", values);
-
-                  const formatSettings = settings.formated[tabela];
-                  if (formatSettings) {
-                    if (formatSettings.alias) {
-                      values = values.map(item => {
-                        const newItem = {};
-                        for (const key in item) {
-                          const newKey = formatSettings.alias[key] || key;
-                          if (item[key] != null && item[key] !== '') {
-                            newItem[newKey] = item[key];
-                          }
-                        }
-                        return newItem;
-                      });
-                    }
-
-                    if (formatSettings.order) {
-                      values = values.map(item => {
-                        return formatSettings.order.reduce((acc, key) => {
-                          acc[key] = item[key] || '';
-                          return acc;
-                        }, {});
-                      });
-                    }
-                  }
-                  tables.value[tabela].push(...values);
-                }
+                let values = formatedValues(JSON.parse(res.data), tabela, nome)
+                tables.value[tabela].push(...values);
                 resolve(res);
               } else {
                 reject(res?.message || 'Erro desconhecido');
@@ -761,7 +763,7 @@
             socket.emit('getIgrejas', { auth: form.value.auth, empresas }, (res) => {
               app.value.loadingTable.igrejas = false;
               if (res?.status) {
-                tables.value.igrejas = JSON.parse(res.data);
+                tables.value.igrejas = formatedValues(JSON.parse(res.data), 'igrejas', 'igrejas');
                 form.value.adms.forEach((adm) => {
                   adm.igrejas = JSON.parse(res.data).filter((i) => i.UNIDADE_COD === adm.id);
                 });
