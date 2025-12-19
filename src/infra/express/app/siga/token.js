@@ -22,7 +22,9 @@ export async function token({ cookies }) {
     if (match && match[1]) {
       const token = match[1];
       console.log('Cookies recebidos:', cookies);
-      console.log('Token encontrado:', token);
+      if (!token) {
+        throw new Error("Token não encontrado na página.");
+      }
 
       return token;
     } else {

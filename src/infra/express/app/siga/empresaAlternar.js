@@ -1,16 +1,16 @@
 import ky from 'ky';
 import * as cheerio from 'cheerio';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 export async function empresaAlterar(values) {
   try {
     // Buscar HTML da página
     const $ = cheerio.load(values.auth.page);
-    const usuario = String($('input[id^="f_usuario_"]').val());
-
+    const usuario = String($('input[id^="f_usuario_"]').val()) || '';
     // Buscar competências
     const competencias = await ky
       .post(
-        'https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetencias',
+        'https://siga.congregacao.org.br/CTB/CompetenciaWS.asmx/SelecionarCompetenciasAsync',
         {
           json: { codigoEmpresa: String(values.igreja.UNIDADE_COD) },
           headers: {
@@ -24,7 +24,11 @@ export async function empresaAlterar(values) {
       )
       .json();
 
-    const competencia = competencias?.d[0]?.Codigo;
+    const competencia = competencias?.d?.Result[0]?.Codigo;
+
+    if(!competencia) {
+      throw new Error('Nenhuma competência encontrada para a empresa.');
+    }
 
     // Enviar alteração de empresa
     const formData = new URLSearchParams();
@@ -35,10 +39,9 @@ export async function empresaAlterar(values) {
     formData.append('f_competencia', competencia);
     formData.append('__jqSubmit__', 'S');
 
-    await ky.post('https://siga.congregacao.org.br/SIS/SIS99906.aspx', {
+    await executeKyRequest(() => ky.post('https://siga.congregacao.org.br/SIS/SIS99906.aspx', {
       body: formData,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         Cookie: values.auth.cookies,
         __antixsrftoken: values.auth.antixsrftoken,
         'X-Requested-With': 'XMLHttpRequest',
@@ -47,14 +50,10 @@ export async function empresaAlterar(values) {
       },
       retry: { limit: 10 },
       timeout: 60000,
-    });
+    }));
   } catch (error) {
     console.error('Erro ao alterar empresa:', error);
-    return {
-      status: false,
-      data: {},
-      message: `Erro ao alterar empresa: ${error.message}`,
-    };
+    throw new Error(`Erro ao alterar empresa: ${error.message}`);
   }
 
   return {

@@ -3,6 +3,7 @@ import { sheet } from '../../../sheet/index.js';
 import ky from 'ky';
 import * as cheerio from 'cheerio';
 import { betweenDates } from '../../../../util/date.js';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 
 // Utilitário para converter datas do Excel
@@ -23,6 +24,7 @@ function getHeaders(auth, contentType = 'application/x-www-form-urlencoded') {
 
 const request = ky.create({ retry: { limit: 5 }, timeout: 60000 });
 
+
 export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, date2) {
   const despesas = [];
   const processamentos = [];
@@ -34,13 +36,13 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
   };
 
   try {
-    const authPageResponse = await request.get('https://siga.congregacao.org.br/TES/TES00901.aspx?f_inicio=S&__initPage__=S', {
+    const authPageResponse = await executeKyRequest(() =>request.get('https://siga.congregacao.org.br/TES/TES00901.aspx?f_inicio=S&__initPage__=S', {
       headers: {
         ...headersBase,
         'Host': 'siga.congregacao.org.br',
         'Referer': 'https://siga.congregacao.org.br/TES/TES00901.aspx'
       }
-    });
+    }));
 
     const htmlText = await authPageResponse.text();
     const $ = cheerio.load(htmlText);
@@ -55,10 +57,10 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
       f_fornecedor: '',
       f_formato: 'https://siga-rpt.congregacao.org.br/TES/TES00902.aspx',
       f_saidapara: 'Excel',
-      f_agrupar: 'CentrodeCustoSetor',
+      f_agrupar: 'CentrodeCusto',
       __initPage__: 'S',
     };
-    const reportResponse = await request.get(`https://siga-rpt.congregacao.org.br/TES/TES00902.aspx?${new URLSearchParams(params).toString()}`, { headers: headersBase });
+    const reportResponse = await executeKyRequest(() => ky.get(`https://siga-rpt.congregacao.org.br/TES/TES00902?${new URLSearchParams(params).toString()}`, { headers: headersBase }));
     const contentType = reportResponse.headers.get('content-type');
     if (contentType && contentType.includes('application/vnd.ms-excel')) {
       const buffer = await (await reportResponse.blob()).arrayBuffer();
@@ -75,7 +77,7 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
               Ref = `${mes}/${ano}`;
             } else if (/^(SET)/.test(`${row[0]}`)) {
               setor = row[0];
-            } else if (/^(BR \d+-\d+|ADM|PIA|DR|CP)/.test(`${row[0]}`)) {
+            } else if (/^([A-Za-z]{2}) \d+-\d+|ADM|PIA|DR|CP/.test(`${row[0]}`)) {
               Localidade = row[0];
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
@@ -125,13 +127,13 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
       __antixsrftoken: antixsrftoken,
     };
 
-    const authPageResponse = await request.get('https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S', {
+    const authPageResponse = await executeKyRequest(() => request.get('https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S', {
       headers: {
         ...headersBase,
         'Host': 'siga.congregacao.org.br',
         'Referer': 'https://siga.congregacao.org.br/TES/TES00501.aspx'
       }
-    });
+    }));
 
     const htmlText = await authPageResponse.text();
     const $ = cheerio.load(htmlText);
@@ -152,10 +154,9 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
         else if (/^(SET)/.test(row[0])) {
           setor = row[0];
           continue;
-        } else if (/^(BR|ADM)/.test(row[0])) nomeIgreja = row[0];
-
+        } else if (/^([A-Za-z]{2}|ADM|PIA|DR|CP|SET)/.test(row[0])) 
+          nomeIgreja = row[0];
         if (/^Tipo/.test(row[6])) continue;
-
         if (/[a-z]/i.test(row[6])) {
           tipo = row[6];
           for (let i = 7; i < headersRow.length; i++) {
@@ -184,7 +185,7 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
 
     for (const { start, end, ref } of betweenDates(date1, date2)) {
       try {
-        const getResp = await request.get(
+        const getResp = await executeKyRequest(() => request.get(
           'https://siga.congregacao.org.br/TES/TES00501.aspx',
           {
             headers: {
@@ -194,7 +195,7 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
             },
             retry: { limit: 5 },
           }
-        );
+        ));
 
         const $ = cheerio.load(await getResp.text());
         const filtro_relatorio = $('#dropdown_localidades li')
@@ -223,15 +224,13 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
         };
         Object.entries(dados).forEach(([k, v]) => form.append(k, v));
 
-        await ky.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
+        await executeKyRequest(() => request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
           headers: headersBase,
           body: form,
-          retry: { limit: 5 },
-          timeout: 60000,
-        });
+        }));
 
 
-        const excelResp = await request.get(
+        const excelResp = await executeKyRequest(() => request.get(
           `https://siga-rpt.congregacao.org.br/TES/TES00507?${new URLSearchParams({
             f_saidapara: 'Excel',
             auth,
@@ -246,7 +245,7 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
             },
             redirect: 'follow',
           }
-        );
+        ));
 
         const contentType = excelResp.headers.get('content-type');
         if (!contentType?.includes('application/vnd.ms-excel')) {
@@ -288,10 +287,10 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
   try {
     const refs = betweenDates(date1, date2).map((e) => e.ref);
 
-    const result = await request.get(
+    const result = await executeKyRequest(() => request.get(
       'https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S',
       { headers: getHeaders({ cookies, antixsrftoken }) }
-    );
+    ));
 
     const html = await result.text();
     const $ = cheerio.load(html);
@@ -312,7 +311,7 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
       const values = await sheet.blobBytesToArray(buffer);
       let igrejaNome = '';
       for (const row of values) {
-        if (/^(SET|ADM|BR|PIA)/.test(`${row[0]}`)) igrejaNome = row[0];
+        if (/^(SET|ADM|BR|XX|PIA)/.test(`${row[0]}`)) igrejaNome = row[0];
         else if (/^\d\d\/\d{4}/.test(row[2])) {
           ref = row[2];
           fluxos.push(
@@ -337,7 +336,7 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
 
     for (const { value: competencia, description: ref } of competencias) {
       try {
-        const resp = await request.get(
+        const resp = await executeKyRequest(() => request.get(
           `https://siga-rpt.congregacao.org.br/TES/TES00702.aspx?${new URLSearchParams({
             auth,
             f_competencia: competencia,
@@ -357,7 +356,7 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             },
           }
-        );
+        ));
 
         const contentType = resp.headers.get('content-type') || '';
         if (!contentType.includes('application/vnd.ms-excel')) {
@@ -397,7 +396,7 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
   const data1BR = date1.split('-').reverse().join('/');
   const data2BR = date2.split('-').reverse().join('/');
 
-  const getResp = await request.get(
+  const getResp = await executeKyRequest(() => request.get(
     'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S', {
     headers: {
       ...headersBase,
@@ -407,7 +406,7 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
     retry: { limit: 5 },
     redirect: "follow"
   }
-  );
+  ));
 
   const html = await getResp.text()
 
@@ -491,15 +490,15 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
 
       Object.entries(dados).forEach(([k, v]) => form.append(k, v));
 
-      await request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
+      await executeKyRequest(() => request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
         headers: headersBase,
         body: form,
         retry: { limit: 5 },
         timeout: 60000,
-      });
+      }));
 
 
-      const excelResp = await request.get(
+      const excelResp = await executeKyRequest(() => request.get(
         `https://siga-rpt.congregacao.org.br/TES/TES00507?${new URLSearchParams({
           f_saidapara: 'Excel',
           auth,
@@ -514,7 +513,7 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
           },
           redirect: 'follow',
         }
-      );
+      ));
 
       const contentType = excelResp.headers.get('content-type');
       if (!contentType?.includes('application/vnd.ms-excel')) {
@@ -547,7 +546,7 @@ export async function carregarFluxo(payload) {
   ]);
 
   return [...despesas, ...depositos, ...coletas].map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
+    e.IGREJA = e.IGREJA?.replace(/^(BR|XX|YY|TT) \d{2}-\d{4} - (.*)$/, '$1').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM;
     e.IGREJA_COD = empresa.IGREJA_COD;
     e.IGREJA_TIPO = empresa.IGREJA_TIPO;
@@ -563,7 +562,7 @@ export async function carregarOfertas(payload) {
   const ofertas = await getOfertas(auth, empresa, date1, date2);
   fluxos.push(...ofertas);
   return fluxos.map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
+    e.IGREJA = e.IGREJA?.replace(/^((BR|XX|YY|TT) \d{2}-\d{4}) - (.*)$/, '$3').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM
     e.IGREJA_COD = empresa.IGREJA_COD
     e.IGREJA_TIPO = empresa.IGREJA_TIPO

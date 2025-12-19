@@ -1,5 +1,6 @@
 // @ts-nocheck
 import ky from 'ky';
+import { executeKyRequest } from '../../../http/executeKyRequest.js';
 
 // --- Funções Auxiliares de Tratamento de Dados ---
 /**
@@ -74,14 +75,14 @@ const coletarValidos = (detalhesItem, out = {}) => {
  */
 const getApiData = async (token, url) => {
   try {
-    const res = await ky.post(url, {
+    const res = await executeKyRequest(() => ky.post(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json, text/plain, */*',
       },
       json: { filtro: { ativo: true }, paginacao: null },
       timeout: 60000,
-    });
+    }));
     const { dados } = await res.json();
     return Array.isArray(dados) ? dados : [];
   } catch (error) {
@@ -110,25 +111,26 @@ function mesclarSemSobrescrever(destino, origem) {
  */
 const getDetalhesItem = async (item, token, grupo, urlBase) => {
   try {
-    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${
-      item.codigoRelac || ''
-    }`;
-    const res = await ky.get(url, {
+    const url = `${urlBase}?codigoServo=${item.codigoServo || ''}&codigoRelac=${item.codigoRelac || ''
+      }`;
+    const res = await executeKyRequest(() => ky.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       timeout: 60000,
       retry: { limit: 5 },
-    });
+    }));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // else process.stdout.write(grupo[0] || '.');
     const detalhes = await res.json();
-    // console.log('Dados: ', item, detalhes);
     const dadosCompletos = mesclarSemSobrescrever(
       { ...item, grupo },
       coletarValidos(detalhes)
     );
+    if (!dadosCompletos.cidade) {
+      dadosCompletos.cidade = dadosCompletos.nomeIgreja.replace(/^BR-\d+-\d+ - /, '')
+    }
     return dadosCompletos;
   } catch (e) {
     console.error(`Erro ao obter detalhes (${grupo}):`, e.message);
@@ -158,175 +160,6 @@ const processarEmLotes = async (items, processor, batchSize = 20) => {
     });
   }
   return resultados;
-};
-
-// --- Lógica Principal de Negócio ---
-/**
- * Normaliza uma lista de objetos para um formato consistente, aplicando regras de negócio e mantendo a ordem de colunas.
- * @param {Array<Object>} lista - Lista de objetos a serem normalizados.
- * @returns {Array<Object>>} Lista de objetos normalizados.
- */
-export const dadosPDO = (lista = []) => {
-  if (!Array.isArray(lista)) {
-    console.error('dadosPDO recebeu um valor que não é um array:', lista);
-    return [];
-  }
-
-  const aliases = {
-    nomerrm: 'nomeRRM',
-    nomeRrm: 'nomeRRM',
-    nomeRegional: 'nomeRRM',
-    codigoRrm: 'codigoRRM',
-    codigoAdministracao: 'codigoAdm',
-    nomeAdministracao: 'nomeADM',
-    nomeRa: 'nomeADM',
-    nomeRA: 'nomeADM',
-    dataOrdenacaoServo: 'dataOrdenacao',
-    dataApresentacao: 'dataOrdenacao',
-    ministerioCargo: 'cargo',
-    nomeMinisterioCargo: 'cargo',
-    codigoMinisterioCargo: 'codigoFuncao',
-    codigoServoMinisterioCargo: 'codigoFuncao',
-    numeroIdentificacao1: 'documento',
-  };
-
-  const ordem = [
-    'grupo',
-    'nome',
-    'sexo',
-    'dataBatismo',
-    'dataNascimento',
-    'telefoneCasa',
-    'telefoneCelular',
-    'telefoneTrabalho',
-    'telefoneRecado',
-    'endereco',
-    'bairro',
-    'cep',
-    'email1',
-    'email2',
-    'eventos',
-    'dataOrdenacao',
-    'cargo',
-    'administrador',
-    'nomeRA',
-    'nomeAdministracao',
-    'documento',
-    'nomeRRM',
-    'nomeIgreja',
-    'comum',
-    'pais',
-    'estado',
-    'cidade',
-    'aprovadorRrm',
-    'statusCadastroCompleto',
-    'ativo',
-    'indicadorFoto',
-    'fotoUrl',
-    'regional',
-    'dataVencimentoMandato',
-    'statusMandato',
-    'qsa',
-    'numeroIdentificacao1',
-    'naoAtuando',
-    'dataAGO',
-    'codigo',
-    'codigoServo',
-    'codigoRelac',
-    'codigoFuncao',
-    'codigoAdministracao',
-    'codigoRRM',
-    'codigoRegional',
-    'codigoIgreja',
-    'codigoSexo',
-    'numeroPosicaoIgreja',
-  ];
-
-  const padroes = {
-    eventos: [],
-    ativo: false,
-    aprovadorRrm: false,
-    indicadorFoto: false,
-    administrador: false,
-    qsa: false,
-    naoAtuando: false,
-  };
-
-  const datas = new Set([
-    'dataOrdenacao',
-    'dataVencimentoMandato',
-    'dataBatismo',
-    'dataNascimento',
-    'dataAGO',
-  ]);
-
-  const normalizados = lista.map((item) => {
-    const result = {};
-    if (typeof item !== 'object' || item === null) return {};
-    for (const [rawKey, value] of Object.entries(item)) {
-      const key = aliases[rawKey] || rawKey;
-      if (value != null && value !== '') {
-        result[key] = limparValor(value);
-      }
-    }
-    return result;
-  });
-
-  const usados = new Set(normalizados.flatMap((item) => Object.keys(item)));
-
-  const colunas = [
-    ...ordem.filter((k) => usados.has(k)),
-    ...[...usados].filter((k) => !ordem.includes(k)),
-  ].filter((k) =>
-    normalizados.some(
-      (item) =>
-        item[k] != null &&
-        item[k] !== '' &&
-        !(Array.isArray(item[k]) && item[k].length === 0)
-    )
-  );
-
-  return normalizados.map((item) => {
-    const resultado = Object.fromEntries(
-      colunas.map((k) => {
-        let valor;
-        if (Object.prototype.hasOwnProperty.call(item, k)) {
-          valor =
-            datas.has(k) && item[k]
-              ? new Date(item[k]).toISOString().slice(0, 19).replace('T', ' ')
-              : item[k];
-        } else {
-          valor = padroes[k] ?? (datas.has(k) ? null : '');
-        }
-        return [k, valor];
-      })
-    );
-    try {
-      if (resultado.telefoneCasa)
-        resultado.telefoneCasa = formatPhoneNumberDD(resultado.telefoneCasa);
-      if (resultado.telefoneCelular)
-        resultado.telefoneCelular = formatPhoneNumberDD(
-          resultado.telefoneCelular
-        );
-      if (resultado.telefoneTrabalho)
-        resultado.telefoneTrabalho = formatPhoneNumberDD(
-          resultado.telefoneTrabalho
-        );
-      if (resultado.telefoneRecado)
-        resultado.telefoneRecado = formatPhoneNumberDD(
-          resultado.telefoneRecado
-        );
-      if (typeof resultado.nomeRA === 'string')
-        resultado.nomeRA = resultado.nomeRA.replace(' - GO', '').trim();
-      if (typeof resultado.nomeRRM === 'string')
-        resultado.nomeRRM = resultado.nomeRRM.replace(' - GO', '').trim();
-      if (typeof resultado.nomeADM === 'string')
-        resultado.nomeADM = resultado.nomeADM.replace(' - GO', '').trim();
-    } catch (error) {
-      console.error('Erro ao formatar dados:', error, resultado);
-    }
-    return resultado;
-  });
 };
 
 /**
@@ -377,14 +210,19 @@ export const carregarDados = async ({ auth }) => {
     ]);
 
     // 3. Combinação e normalização dos dados
-    const dadosCompletos = [...detalhesMinisterios, ...detalhesAdministradores];
-    const dadosNormalizados = dadosPDO(dadosCompletos);
+    const dadosCompletos = [...detalhesMinisterios.map(e => {
+      e.administrador = 'NÃO';
+      return e
+    }), ...detalhesAdministradores.map(e => {
+      e.administrador = 'SIM';
+      return e
+    })];
 
     const fim = Date.now();
     const minutos = ((fim - inicio) / 60000).toFixed(2);
     console.log(`Tempo gasto carregarDados: ${minutos} minutos`);
 
-    return dadosNormalizados;
+    return dadosCompletos;
   } catch (error) {
     console.error('Erro fatal em carregarDados:', error);
     return [];

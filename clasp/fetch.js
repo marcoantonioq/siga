@@ -61,6 +61,8 @@ function handleFetchError(error, msg) {
 function GoogleSheets(msg) {
   if (msg?.tables) {
     msg.tables = JSON.parse(msg.tables)
+    console.log("Salvar dados na planilha:::: ", msg);
+    
     criarTabelasNoGoogleSheets(msg);
   } else {
     console.error('Nenhuma tabela encontrada no objeto msg:', msg);

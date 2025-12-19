@@ -31,18 +31,21 @@ export async function igrejas({ empresas = [], auth = null }) {
           // Garante que response.d existe e é um array
           if (!response.d || !Array.isArray(response.d)) return [];
 
-          return response.d.map((i) =>
+          const igrejas =  response.d.map((i) =>
             Igreja.create({
               IGREJA_COD: i['Codigo'],
               IGREJA: i['Nome'],
               IGREJA_DESC: i['NomeExibicao'],
               IGREJA_TIPO: i['CodigoTipoEstabelecimento'],
-              IGREJA_ADM: e.description.replace(' - GO', ''),
-              REGIONAL: e.regional.replace(' - GO', ''),
+              IGREJA_ADM: e.description,
+              REGIONAL: e.regional,
               UNIDADE_COD: i['CodigoEmpresa'],
               MEMBROS: 0,
             })
           );
+
+          console.log("Igrejas carregadas: ", igrejas);
+          return igrejas
         } catch (error) {
           console.log('Erro:: ', error);
           return [];
