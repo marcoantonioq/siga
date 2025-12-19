@@ -78,6 +78,8 @@ export class IgrejasRepo {
       });
     });
 
+    console.log("Igrejas carregadas: ", igrejas);
+
     return igrejas;
   }
 

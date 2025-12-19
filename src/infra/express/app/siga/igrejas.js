@@ -31,7 +31,7 @@ export async function igrejas({ empresas = [], auth = null }) {
           // Garante que response.d existe e é um array
           if (!response.d || !Array.isArray(response.d)) return [];
 
-          return response.d.map((i) =>
+          const igrejas =  response.d.map((i) =>
             Igreja.create({
               IGREJA_COD: i['Codigo'],
               IGREJA: i['Nome'],
@@ -43,6 +43,9 @@ export async function igrejas({ empresas = [], auth = null }) {
               MEMBROS: 0,
             })
           );
+
+          console.log("Igrejas carregadas: ", igrejas);
+          return igrejas
         } catch (error) {
           console.log('Erro:: ', error);
           return [];

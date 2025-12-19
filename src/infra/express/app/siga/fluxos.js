@@ -77,7 +77,7 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
               Ref = `${mes}/${ano}`;
             } else if (/^(SET)/.test(`${row[0]}`)) {
               setor = row[0];
-            } else if (/^(BR \d+-\d+|ADM|PIA|DR|CP)/.test(`${row[0]}`)) {
+            } else if (/^([A-Za-z]{2}) \d+-\d+|ADM|PIA|DR|CP/.test(`${row[0]}`)) {
               Localidade = row[0];
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
@@ -154,10 +154,9 @@ export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date
         else if (/^(SET)/.test(row[0])) {
           setor = row[0];
           continue;
-        } else if (/^(BR|ADM)/.test(row[0])) nomeIgreja = row[0];
-
+        } else if (/^([A-Za-z]{2}|ADM|PIA|DR|CP|SET)/.test(row[0])) 
+          nomeIgreja = row[0];
         if (/^Tipo/.test(row[6])) continue;
-
         if (/[a-z]/i.test(row[6])) {
           tipo = row[6];
           for (let i = 7; i < headersRow.length; i++) {
@@ -312,7 +311,7 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
       const values = await sheet.blobBytesToArray(buffer);
       let igrejaNome = '';
       for (const row of values) {
-        if (/^(SET|ADM|BR|PIA)/.test(`${row[0]}`)) igrejaNome = row[0];
+        if (/^(SET|ADM|BR|XX|PIA)/.test(`${row[0]}`)) igrejaNome = row[0];
         else if (/^\d\d\/\d{4}/.test(row[2])) {
           ref = row[2];
           fluxos.push(
@@ -547,7 +546,7 @@ export async function carregarFluxo(payload) {
   ]);
 
   return [...despesas, ...depositos, ...coletas].map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
+    e.IGREJA = e.IGREJA?.replace(/^(BR|XX|YY|TT) \d{2}-\d{4} - (.*)$/, '$1').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM;
     e.IGREJA_COD = empresa.IGREJA_COD;
     e.IGREJA_TIPO = empresa.IGREJA_TIPO;
@@ -563,7 +562,7 @@ export async function carregarOfertas(payload) {
   const ofertas = await getOfertas(auth, empresa, date1, date2);
   fluxos.push(...ofertas);
   return fluxos.map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^BR \d{2}-\d{4} - (.*)$/, '$1').trim();
+    e.IGREJA = e.IGREJA?.replace(/^((BR|XX|YY|TT) \d{2}-\d{4}) - (.*)$/, '$3').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM
     e.IGREJA_COD = empresa.IGREJA_COD
     e.IGREJA_TIPO = empresa.IGREJA_TIPO
