@@ -17,7 +17,7 @@ export async function empresas(auth) {
         type: 'EMPRESA',
         id: Number(optionMatch[1]),
         description: optionMatch[2].trim(),
-        active: false,
+        active: true,
         loading: false,
         igrejas: [],
       });

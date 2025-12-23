@@ -361,7 +361,7 @@
                 <td>
                   <button v-show="tables.igrejas.length" type="button" @click="copy(tables.igrejas)"
                     :disabled="app.loading">
-                    Copiar
+                    Copiar ({{tables['igrejas'].length}})
                   </button>
                 </td>
               </tr>
@@ -665,6 +665,8 @@
 
         function formatedValues(itens, tabela, nome) {
           let values = itens
+          console.log("Valores: ", itens);
+          
           const datas = new Set(settings.types.datas);
 
           const telefones = new Set(settings.types.telefones);
@@ -693,6 +695,12 @@
                 } else if (typeof item[key] === 'string' && item[key].endsWith(' - GO')) {
                   item[key] = item[key].replace(/ - GO$/, '').trim();
                 }
+
+                // formatar nome igreja...??
+                // if (typeof item[key] === 'string' && item[key].endsWith(' - GO')) {
+
+
+                // }
               }
               return item;
             })
@@ -731,6 +739,25 @@
               if (loadingKey) app.value.loadingTable[loadingKey] = false;
               if (res?.status) {
                 let values = formatedValues(JSON.parse(res.data), tabela, nome)
+                console.log("Atualziando tabela::: ", tabela, nome, payload, values);
+                switch (tabela) {
+                  case "fluxos":
+                    const igrejas = tables.value.igrejas
+                    values = values.map(f => {
+                      const idIgreja = igrejas.find(e => e.IGREJA_DESC === f.IGREJA_DESC)
+                      if(idIgreja){
+                        f.IGREJA_COD =idIgreja.IGREJA_COD
+                      }
+                      f.VALOR = Number(f.VALOR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      console.log(f.VALOR)
+                      return f
+                    })
+                    break;
+                
+                  default:
+                    break;
+                }
+                
                 tables.value[tabela].push(...values);
                 resolve(res);
               } else {

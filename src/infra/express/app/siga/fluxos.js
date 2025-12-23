@@ -4,7 +4,7 @@ import ky from 'ky';
 import * as cheerio from 'cheerio';
 import { betweenDates } from '../../../../util/date.js';
 import { executeKyRequest } from '../../../http/executeKyRequest.js';
-
+import { igrejas } from './igrejas.js';
 
 // Utilitário para converter datas do Excel
 function excelDateToJSDate(serial) {
@@ -24,30 +24,42 @@ function getHeaders(auth, contentType = 'application/x-www-form-urlencoded') {
 
 const request = ky.create({ retry: { limit: 5 }, timeout: 60000 });
 
-
-export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, date2) {
+export async function getDespesas(
+  { cookies },
+  { IGREJA_COD = null },
+  date1,
+  date2
+) {
   const despesas = [];
   const processamentos = [];
 
   const headersBase = {
-    'Host': 'siga-rpt.congregacao.org.br',
-    'Cookie': cookies,
-    'Referer': 'https://siga.congregacao.org.br/'
+    Host: 'siga-rpt.congregacao.org.br',
+    Cookie: cookies,
+    Referer: 'https://siga.congregacao.org.br/',
   };
 
   try {
-    const authPageResponse = await executeKyRequest(() =>request.get('https://siga.congregacao.org.br/TES/TES00901.aspx?f_inicio=S&__initPage__=S', {
-      headers: {
-        ...headersBase,
-        'Host': 'siga.congregacao.org.br',
-        'Referer': 'https://siga.congregacao.org.br/TES/TES00901.aspx'
-      }
-    }));
+    const authPageResponse = await executeKyRequest(() =>
+      request.get(
+        'https://siga.congregacao.org.br/TES/TES00901.aspx?f_inicio=S&__initPage__=S',
+        {
+          headers: {
+            ...headersBase,
+            Host: 'siga.congregacao.org.br',
+            Referer: 'https://siga.congregacao.org.br/TES/TES00901.aspx',
+          },
+        }
+      )
+    );
 
     const htmlText = await authPageResponse.text();
     const $ = cheerio.load(htmlText);
     const auth = String($('#auth').val() || '');
-    if (!auth) throw new Error("Token de autenticação 'auth' não encontrado. Verifique o arquivo 'response.html'.");
+    if (!auth)
+      throw new Error(
+        "Token de autenticação 'auth' não encontrado. Verifique o arquivo 'response.html'."
+      );
     const params = {
       auth,
       f_data1: date1.split('-').reverse().join('/'),
@@ -60,7 +72,14 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
       f_agrupar: 'CentrodeCusto',
       __initPage__: 'S',
     };
-    const reportResponse = await executeKyRequest(() => ky.get(`https://siga-rpt.congregacao.org.br/TES/TES00902?${new URLSearchParams(params).toString()}`, { headers: headersBase }));
+    const reportResponse = await executeKyRequest(() =>
+      ky.get(
+        `https://siga-rpt.congregacao.org.br/TES/TES00902?${new URLSearchParams(
+          params
+        ).toString()}`,
+        { headers: headersBase }
+      )
+    );
     const contentType = reportResponse.headers.get('content-type');
     if (contentType && contentType.includes('application/vnd.ms-excel')) {
       const buffer = await (await reportResponse.blob()).arrayBuffer();
@@ -77,7 +96,9 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
               Ref = `${mes}/${ano}`;
             } else if (/^(SET)/.test(`${row[0]}`)) {
               setor = row[0];
-            } else if (/^([A-Za-z]{2}) \d+-\d+|ADM|PIA|DR|CP/.test(`${row[0]}`)) {
+            } else if (
+              /^([A-Za-z]{2}) \d+-\d+|ADM|PIA|DR|CP/.test(`${row[0]}`)
+            ) {
               Localidade = row[0];
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
@@ -88,10 +109,7 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
                   CATEGORIA: row[6],
                   DATA: new Date(
                     new Date(1899, 11, 30).getTime() + row[0] * 86400000
-                  )
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace('T', ' '),
+                  ).toISOString(),
                   VALOR: row[30] || 0,
                   OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
                   REF: Ref,
@@ -100,197 +118,148 @@ export async function getDespesas({ cookies }, { IGREJA_COD = null }, date1, dat
                 })
               );
             }
-          } catch { }
+          } catch {}
         }
         console.log('🎉 Processado XLS de despesas:', Ref);
       };
       processamentos.push(processarXLS(buffer));
       await Promise.allSettled(processamentos);
     } else {
-      throw new Error("O servidor não retornou um arquivo Excel. Verifique o conteúdo da resposta.");
+      throw new Error(
+        'O servidor não retornou um arquivo Excel. Verifique o conteúdo da resposta.'
+      );
     }
   } catch (error) {
-    console.error("Erro ao buscar a página de autenticação:", error);
+    console.error('Erro ao buscar a página de autenticação:', error);
     return [];
   }
 
-  return despesas
+  return despesas;
 }
 
-export async function getColetas({ cookies, antixsrftoken }, igreja, date1, date2) {
-  const fluxos = [];
-  const processamentos = [];
-
+export async function getColetas(
+  { cookies, antixsrftoken, token },
+  igreja,
+  date1,
+  date2
+) {
   try {
-    const headersBase = {
-      Cookie: cookies,
-      __antixsrftoken: antixsrftoken,
-    };
+    try {
+      const getResp = await executeKyRequest(() =>
+        request.get('https://siga.congregacao.org.br/TES/TES00501.aspx', {
+          headers: {
+            Cookie: cookies,
+            __antixsrftoken: antixsrftoken,
+            Referer:
+              'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S',
+          },
+          retry: { limit: 5 },
+        })
+      );
 
-    const authPageResponse = await executeKyRequest(() => request.get('https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S', {
-      headers: {
-        ...headersBase,
-        'Host': 'siga.congregacao.org.br',
-        'Referer': 'https://siga.congregacao.org.br/TES/TES00501.aspx'
+      const $ = cheerio.load(await getResp.text());
+      const ListaEstabelecimentos = $('#dropdown_localidades li')
+        .map((_, el) => $(el).attr('id'))
+        .get()
+        .join(', ');
+
+      const dados = {
+        DataInicio: date1,
+        DataFim: date2,
+        Estabelecimento: '',
+        ListaEstabelecimentos,
+        FormaContribuicao: '0',
+        Formato: 'xlsx',
+      };
+
+      const resp = await executeKyRequest(() =>
+        request.post('https://sigarpt-api.congregacao.org.br/api/tes/tes005', {
+          headers: {
+            Host: 'sigarpt-api.congregacao.org.br',
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Sec-Ch-Ua-Platform': '"Linux"',
+          },
+          body: JSON.stringify(dados),
+          retry: { limit: 3 },
+        })
+      );
+
+      const contentType = resp.headers.get('content-type');
+
+      if (
+        !contentType?.includes(
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+      ) {
+        const text = await resp.text();
+        console.error('[getColetas] Resposta inesperada:', text.slice(0, 300));
       }
-    }));
 
-    const htmlText = await authPageResponse.text();
-    const $ = cheerio.load(htmlText);
-    const auth = String($('#auth').val() || '');
-    if (!auth) throw new Error("Token de autenticação 'auth' não encontrado. Verifique o arquivo 'response.html'.");
+      const buffer = await resp.arrayBuffer();
 
-    const processarXLS = async (buffer, ref, end) => {
-      const values = await sheet.blobBytesToArray(buffer);
-      let nomeIgreja = '',
-        setor = '',
-        headersRow = '',
-        tipo = '';
-
-      for (const row of values) {
-        if (/^Total/.test(row[0])) nomeIgreja = '';
-        else if (/^Todos/.test(row[0])) break;
-        else if (/^Casa de Oração/.test(row[0])) headersRow = row;
-        else if (/^(SET)/.test(row[0])) {
-          setor = row[0];
-          continue;
-        } else if (/^([A-Za-z]{2}|ADM|PIA|DR|CP|SET)/.test(row[0])) 
-          nomeIgreja = row[0];
-        if (/^Tipo/.test(row[6])) continue;
-        if (/[a-z]/i.test(row[6])) {
-          tipo = row[6];
-          for (let i = 7; i < headersRow.length; i++) {
-            if (headersRow[i] === 'Total') break;
-            if (!headersRow[i] || typeof row[i] !== 'number') continue;
-
-            fluxos.push(
-              Fluxo.create({
-                FLUXO: 'Coleta',
-                IGREJA: nomeIgreja,
-                IGREJA_DESC: nomeIgreja,
-                CATEGORIA: tipo,
-                DATA: end.slice(0, 19).replace('T', ' '),
-                VALOR: row[i],
-                OBSERVACOES: `Tipo: ${headersRow[i]}`,
-                REF: ref,
-                ORIGEM: 'SIGA',
-                SETOR: setor,
-              })
-            );
-          }
-        }
+      function excelToDate(n) {
+        return new Date(Date.UTC(1899, 11, 30) + n * 86400000);
       }
-      console.log('Terminou processamento de XLS para:', ref);
-    };
 
-    for (const { start, end, ref } of betweenDates(date1, date2)) {
-      try {
-        const getResp = await executeKyRequest(() => request.get(
-          'https://siga.congregacao.org.br/TES/TES00501.aspx',
-          {
-            headers: {
-              ...headersBase,
-              Referer:
-                'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S',
-            },
-            retry: { limit: 5 },
+      const values = (await sheet.blobBytesToArray(buffer))
+        .map((row) => {
+          try {
+            const date = new Date(excelDateToJSDate(row[0]));
+
+            if (!date || isNaN(date.getTime())) {
+              return null;
+            }
+            return Fluxo.create({
+              FLUXO: 'Coleta',
+              IGREJA: row[4],
+              IGREJA_DESC: `${row[4]}`.replace(/^XX/, 'BR'),
+              CATEGORIA: `${row[2]}`.replace('CULTO OFICIAL', 'CLT'),
+              DATA: date.toISOString(),
+              VALOR: row[5],
+              OBSERVACOES: row[1],
+              REF: `${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}/${date.getFullYear()}`,
+              ORIGEM: 'SIGA',
+              SETOR: '',
+            });
+          } catch (error) {
+            console.error('Erro ao processar linha da coleta: ', error, row);
           }
-        ));
-
-        const $ = cheerio.load(await getResp.text());
-        const filtro_relatorio = $('#dropdown_localidades li')
-          .map((_, el) => $(el).attr('id'))
-          .get()
-          .join(', ');
-
-        const data1BR = start.split('-').reverse().join('/');
-        const data2BR = end.split('-').reverse().join('/');
-
-        const form = new FormData();
-        const dados = {
-          f_consultar: 'S',
-          f_data1: data1BR,
-          f_data2: data2BR,
-          f_estabelecimento: '',
-          f_filtro_relatorio: filtro_relatorio,
-          f_formacontribuicao: '0',
-          f_opcao2: 'casaoracao',
-          f_exibir: 'comvalor',
-          f_detalhar: 'true',
-          f_saidapara: 'Excel',
-          f_ordenacao: 'alfabetica',
-          __initPage__: 'S',
-          __jqSubmit__: 'S',
-        };
-        Object.entries(dados).forEach(([k, v]) => form.append(k, v));
-
-        await executeKyRequest(() => request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
-          headers: headersBase,
-          body: form,
-        }));
-
-
-        const excelResp = await executeKyRequest(() => request.get(
-          `https://siga-rpt.congregacao.org.br/TES/TES00507?${new URLSearchParams({
-            f_saidapara: 'Excel',
-            auth,
-            __initPage__: 'S',
-          }).toString()}`,
-          {
-            headers: {
-              ...headersBase,
-              'Host': 'siga-rpt.congregacao.org.br',
-              'Referer': 'https://siga.congregacao.org.br/',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            },
-            redirect: 'follow',
-          }
-        ));
-
-        const contentType = excelResp.headers.get('content-type');
-        if (!contentType?.includes('application/vnd.ms-excel')) {
-          const text = await excelResp.text();
-          const $body = cheerio.load(text)('body');
-          let plainText = $body.text().replace(/\s+/g, ' ').trim();
-          if (!plainText)
-            plainText = text
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-          console.error(
-            `[getColetas] Resposta inválida (${ref}):`,
-            plainText.slice(0, 300)
-          );
-          continue;
-        }
-
-        const buffer = await excelResp.arrayBuffer();
-        processamentos.push(processarXLS(buffer, ref, end));
-      } catch (err) {
-        console.error(`[getColetas] Erro no período ${start} a ${end}:`, err);
-      }
+        })
+        .filter(Boolean);
+      return values;
+    } catch (err) {
+      console.error(
+        `[getColetas] Erro ao processar coletas ${date1} à ${date2}`,
+        err
+      );
     }
-
-    await Promise.allSettled(processamentos);
-    console.log('Fluxos carregados:', fluxos.length);
   } catch (error) {
-    console.error("Erros ao processar coletas:: ", error)
-    return []
+    console.error('Erros ao processar coletas:: ', error);
+    return [];
   }
-  return fluxos;
 }
 
-export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, date1, date2) {
+export async function getDepositos(
+  { cookies, antixsrftoken },
+  { IGREJA_COD },
+  date1,
+  date2
+) {
   const fluxos = [];
   const processamentos = [];
 
   try {
     const refs = betweenDates(date1, date2).map((e) => e.ref);
 
-    const result = await executeKyRequest(() => request.get(
-      'https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S',
-      { headers: getHeaders({ cookies, antixsrftoken }) }
-    ));
+    const result = await executeKyRequest(() =>
+      request.get(
+        'https://siga.congregacao.org.br/TES/TES00701.aspx?f_inicio=S&__initPage__=S',
+        { headers: getHeaders({ cookies, antixsrftoken }) }
+      )
+    );
 
     const html = await result.text();
     const $ = cheerio.load(html);
@@ -319,10 +288,7 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
               FLUXO: 'Deposito',
               IGREJA: igrejaNome,
               IGREJA_DESC: igrejaNome,
-              DATA: new Date(excelDateToJSDate(row[3]))
-                .toISOString()
-                .slice(0, 19)
-                .replace('T', ' '),
+              DATA: new Date(excelDateToJSDate(row[3])).toISOString(),
               VALOR: row[18],
               OBSERVACOES: `Conta: ${row[7]}; Documento: ${row[16]}`,
               REF: ref,
@@ -336,27 +302,31 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
 
     for (const { value: competencia, description: ref } of competencias) {
       try {
-        const resp = await executeKyRequest(() => request.get(
-          `https://siga-rpt.congregacao.org.br/TES/TES00702.aspx?${new URLSearchParams({
-            auth,
-            f_competencia: competencia,
-            f_data1: '',
-            f_data2: '',
-            f_estabelecimento: IGREJA_COD,
-            f_saidapara: 'Excel',
-            f_ordenacao: 'alfabetica',
-            __initPage__: 'S',
-          }).toString()
-          }`,
-          {
-            headers: {
-              ...getHeaders({ cookies, antixsrftoken }),
-              'Host': 'siga-rpt.congregacao.org.br',
-              'Referer': 'https://siga.congregacao.org.br/',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            },
-          }
-        ));
+        const resp = await executeKyRequest(() =>
+          request.get(
+            `https://siga-rpt.congregacao.org.br/TES/TES00702.aspx?${new URLSearchParams(
+              {
+                auth,
+                f_competencia: competencia,
+                f_data1: '',
+                f_data2: '',
+                f_estabelecimento: IGREJA_COD,
+                f_saidapara: 'Excel',
+                f_ordenacao: 'alfabetica',
+                __initPage__: 'S',
+              }
+            ).toString()}`,
+            {
+              headers: {
+                ...getHeaders({ cookies, antixsrftoken }),
+                Host: 'siga-rpt.congregacao.org.br',
+                Referer: 'https://siga.congregacao.org.br/',
+                Accept:
+                  'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+              },
+            }
+          )
+        );
 
         const contentType = resp.headers.get('content-type') || '';
         if (!contentType.includes('application/vnd.ms-excel')) {
@@ -378,13 +348,18 @@ export async function getDepositos({ cookies, antixsrftoken }, { IGREJA_COD }, d
     console.log('Fluxos de depósitos carregados:', fluxos.length);
   } catch (err) {
     console.error('[getDepositos] Erro geral:', err);
-    return []
+    return [];
   }
 
   return fluxos;
 }
 
-export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date2) {
+export async function getOfertas(
+  { cookies, antixsrftoken },
+  igreja,
+  date1,
+  date2
+) {
   const fluxos = [];
   const processamentos = [];
 
@@ -396,24 +371,31 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
   const data1BR = date1.split('-').reverse().join('/');
   const data2BR = date2.split('-').reverse().join('/');
 
-  const getResp = await executeKyRequest(() => request.get(
-    'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S', {
-    headers: {
-      ...headersBase,
-      'Host': 'siga.congregacao.org.br',
-      'Referer': 'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S'
-    },
-    retry: { limit: 5 },
-    redirect: "follow"
-  }
-  ));
+  const getResp = await executeKyRequest(() =>
+    request.get(
+      'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S&__initPage__=S',
+      {
+        headers: {
+          ...headersBase,
+          Host: 'siga.congregacao.org.br',
+          Referer:
+            'https://siga.congregacao.org.br/TES/TES00501.aspx?f_inicio=S',
+        },
+        retry: { limit: 5 },
+        redirect: 'follow',
+      }
+    )
+  );
 
-  const html = await getResp.text()
+  const html = await getResp.text();
 
   const $ = cheerio.load(html);
 
   const auth = String($('#auth').val() || '');
-  if (!auth) throw new Error("Token de autenticação 'auth' não encontrado. Verifique o arquivo 'response.html'.");
+  if (!auth)
+    throw new Error(
+      "Token de autenticação 'auth' não encontrado. Verifique o arquivo 'response.html'."
+    );
 
   const options = $('#f_estabelecimento option');
   const estabelecimentos = [];
@@ -438,8 +420,9 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
 
       if (/^\d{2}\/\d{2}\/\d{4}/.test(row[4])) {
         const [dia, mes, ano] = row[4].split('/');
-        const data = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${categoria === 'CLT' ? '19:30:00' : '09:30:00'
-          }-03:00`;
+        const data = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${
+          categoria === 'CLT' ? '19:30:00' : '09:30:00'
+        }-03:00`;
         ref = `${mes}/${ano}`;
 
         for (let i = 5; i < row.length; i++) {
@@ -452,7 +435,7 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
               IGREJA: igrejaNome,
               IGREJA_DESC: igrejaNome,
               CATEGORIA: categoria,
-              DATA: data.slice(0, 19).replace('T', ' '),
+              DATA: data,
               VALOR: row[i],
               OBSERVACOES: `Tipo: ${observacoes[i] || ''};`,
               REF: ref,
@@ -490,30 +473,36 @@ export async function getOfertas({ cookies, antixsrftoken }, igreja, date1, date
 
       Object.entries(dados).forEach(([k, v]) => form.append(k, v));
 
-      await executeKyRequest(() => request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
-        headers: headersBase,
-        body: form,
-        retry: { limit: 5 },
-        timeout: 60000,
-      }));
+      await executeKyRequest(() =>
+        request.post('https://siga.congregacao.org.br/TES/TES00501.aspx', {
+          headers: headersBase,
+          body: form,
+          retry: { limit: 5 },
+          timeout: 60000,
+        })
+      );
 
-
-      const excelResp = await executeKyRequest(() => request.get(
-        `https://siga-rpt.congregacao.org.br/TES/TES00507?${new URLSearchParams({
-          f_saidapara: 'Excel',
-          auth,
-          __initPage__: 'S',
-        }).toString()}`,
-        {
-          headers: {
-            ...headersBase,
-            'Host': 'siga-rpt.congregacao.org.br',
-            'Referer': 'https://siga.congregacao.org.br/',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-          },
-          redirect: 'follow',
-        }
-      ));
+      const excelResp = await executeKyRequest(() =>
+        request.get(
+          `https://siga-rpt.congregacao.org.br/TES/TES00507?${new URLSearchParams(
+            {
+              f_saidapara: 'Excel',
+              auth,
+              __initPage__: 'S',
+            }
+          ).toString()}`,
+          {
+            headers: {
+              ...headersBase,
+              Host: 'siga-rpt.congregacao.org.br',
+              Referer: 'https://siga.congregacao.org.br/',
+              Accept:
+                'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            },
+            redirect: 'follow',
+          }
+        )
+      );
 
       const contentType = excelResp.headers.get('content-type');
       if (!contentType?.includes('application/vnd.ms-excel')) {
@@ -541,12 +530,13 @@ export async function carregarFluxo(payload) {
 
   const [despesas, depositos, coletas] = await Promise.all([
     getDespesas(auth, empresa, date1, date2),
-    getDepositos(auth, empresa, date1, date2),
-    getColetas(auth, empresa, date1, date2),
+    // getDepositos(auth, empresa, date1, date2),
+    // getColetas(auth, empresa, date1, date2),
+    [],[]
   ]);
 
-  return [...despesas, ...depositos, ...coletas].map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^(BR|XX|YY|TT) \d{2}-\d{4} - (.*)$/, '$1').trim();
+  return [...despesas, ...depositos, ...coletas].map((e) => {
+    e.IGREJA = e.IGREJA?.replace(/^(BR|XX|YY|TT)\s\d{2}-\d{4}\s-\s/, '').trim();
     e.IGREJA_ADM = empresa.IGREJA_ADM;
     e.IGREJA_COD = empresa.IGREJA_COD;
     e.IGREJA_TIPO = empresa.IGREJA_TIPO;
@@ -561,12 +551,15 @@ export async function carregarOfertas(payload) {
   const fluxos = [];
   const ofertas = await getOfertas(auth, empresa, date1, date2);
   fluxos.push(...ofertas);
-  return fluxos.map(e => {
-    e.IGREJA = e.IGREJA?.replace(/^((BR|XX|YY|TT) \d{2}-\d{4}) - (.*)$/, '$3').trim();
-    e.IGREJA_ADM = empresa.IGREJA_ADM
-    e.IGREJA_COD = empresa.IGREJA_COD
-    e.IGREJA_TIPO = empresa.IGREJA_TIPO
-    e.REGIONAL = empresa.REGIONAL
-    return e
+  return fluxos.map((e) => {
+    e.IGREJA = e.IGREJA?.replace(
+      /^((BR|XX|YY|TT) \d{2}-\d{4}) - (.*)$/,
+      '$3'
+    ).trim();
+    e.IGREJA_ADM = empresa.IGREJA_ADM;
+    e.IGREJA_COD = empresa.IGREJA_COD;
+    e.IGREJA_TIPO = empresa.IGREJA_TIPO;
+    e.REGIONAL = empresa.REGIONAL;
+    return e;
   });
 }
