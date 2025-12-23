@@ -1,15 +1,21 @@
 #!/bin/bash
 
-cd /app
+echo "Verificando atualizações no repositório..."
 
-echo "🔄 Verificando atualizações do repositório..."
-git config pull.ff only
-git fetch --all
-git pull
+# Verifica se a pasta .git existe, se não, inicializa ou clona
+if [ ! -d ".git" ]; then
+    echo "Repositório não encontrado. Clonando..."
+    git clone https://github.com/marcoantonioq/siga/ .
+else
+    echo "Atualizando código existente..."
+    git fetch origin
+    git reset --hard origin/main # Garante que o código local seja idêntico ao remoto
+fi
 
-echo "📦 Instalando dependências..."
+# Instala novas dependências caso o package.json tenha mudado
+echo "Instalando/Atualizando dependências..."
 npm install
 
-echo "🚀 Iniciando servidor..."
-npx nodemon src/index.js
-# node src/index.js
+# Inicia a aplicação
+echo "Iniciando aplicação..."
+exec node src/index.js
