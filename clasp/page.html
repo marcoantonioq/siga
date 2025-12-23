@@ -537,33 +537,59 @@
 
         function wsConnect() {
           return new Promise((resolve, reject) => {
-            const socketUrl =
-              location.hostname === 'localhost'
-                ? 'http://localhost:3009'
-                : 'https://siga.goias.ifg.edu.br';
-            socket = io(socketUrl, { transports: ['websocket'] });
-            socket.on('connected', async () => {
-              app.value.wsConnected = true;
-              try {
-                await login();
-                resolve();
-              } catch (e) {
-                show.warn('Erro ao realizar login: ' + e, 4000);
-                reject(e);
-              }
+            const { protocol, hostname } = window.location;
+            const primaryUrl = `${protocol}//${hostname}:3009`;
+            const fallbackUrl = 'https://siga.goias.ifg.edu.br';
+
+            let resolved = false;
+
+            function setupSocketHandlers(socketInstance) {
+              socketInstance.once('connect', async () => {
+                app.value.wsConnected = true;
+
+                try {
+                  await login();
+                  if (!resolved) {
+                    resolved = true;
+                    resolve(socketInstance);
+                  }
+                } catch (e) {
+                  show.warn('Erro ao realizar login: ' + e, 4000);
+                  reject(e);
+                }
+              });
+
+              socketInstance.once('disconnect', () => {
+                app.value.wsConnected = false;
+                app.value.loadingTable.login = false;
+                show.warn('Desconectado do servidor.', 3000);
+              });
+
+              socketInstance.once('connect_error', err => {
+                reject(err);
+              });
+            }
+
+            // 👉 primeira tentativa
+            socket = io(primaryUrl, {
+              transports: ['websocket'],
+              timeout: 3000
             });
-            socket.on('disconnect', () => {
-              app.value.wsConnected = false;
-              app.value.loadingTable.login = false;
-              show.warn('Desconectado do servidor.', 3000);
+
+            socket.once('connect_error', () => {
+              console.warn('Falha ao conectar no servidor local, usando fallback HTTPS');
+
+              socket.close();
+
+              // 👉 fallback
+              socket = io(fallbackUrl, { transports: ['websocket'] });
+              setupSocketHandlers(socket);
             });
-            socket.on('connect_error', (err) => {
-              show.warn('Erro de conexão: ' + err.message, 4000);
-              app.value.loadingTable.login = false;
-              reject(err);
-            });
+
+            setupSocketHandlers(socket);
           });
         }
+
 
         function getToken() {
           return new Promise((resolve, reject) => {
@@ -666,7 +692,7 @@
         function formatedValues(itens, tabela, nome) {
           let values = itens
           console.log("Valores: ", itens);
-          
+
           const datas = new Set(settings.types.datas);
 
           const telefones = new Set(settings.types.telefones);
@@ -739,19 +765,19 @@
                     const igrejas = tables.value.igrejas
                     values = values.map(f => {
                       const idIgreja = igrejas.find(e => e.IGREJA_DESC === f.IGREJA_DESC)
-                      if(idIgreja){
-                        f.IGREJA_COD =idIgreja.IGREJA_COD
+                      if (idIgreja) {
+                        f.IGREJA_COD = idIgreja.IGREJA_COD
                       }
                       f.VALOR = Number(f.VALOR).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       console.log(f.VALOR)
                       return f
                     })
                     break;
-                
+
                   default:
                     break;
                 }
-                
+
                 tables.value[tabela].push(...values);
                 resolve(res);
               } else {
