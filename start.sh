@@ -9,7 +9,7 @@ if [ ! -d ".git" ]; then
 else
     echo "Atualizando código existente..."
     git fetch origin
-    git reset --hard origin/main # Garante que o código local seja idêntico ao remoto
+    git reset --hard origin/main
 fi
 
 # Instala novas dependências caso o package.json tenha mudado
