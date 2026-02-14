@@ -69,7 +69,7 @@ export class FluxosRepo {
               Ref = `${mm}/${yyyy}`;
             } else if (/^(SET)/.test(`${row[0]}`)) {
               setor = row[0];
-            } else if (/^(BR \d+-\d+|ADM|PIA|DR|CP)/.test(`${row[0]}`)) {
+            } else if (/^(BR|XX|YY|TT) \d+-\d+|ADM|PIA|DR|CP/.test(`${row[0]}`)) {
               Localidade = row[0];
             } else if (/^\d+$/.test(`${row[0]}`)) {
               despesas.push(
@@ -185,7 +185,7 @@ export class FluxosRepo {
           } else if (/^(SET)/.test(values[i][0])) {
             setor = values[i][0];
             continue;
-          } else if (/^(BR|ADM)/.test(values[i][0])) {
+          } else if (/^(BR|XX|ADM)/.test(values[i][0])) {
             nomeIgreja = values[i][0];
           }
 
@@ -286,7 +286,7 @@ export class FluxosRepo {
           var ref = values[9][14];
 
           for (var i = 0; i < values.length; i++) {
-            if (/^(SET|ADM|BR|PIA)/.test(`${values[i][0]}`)) {
+            if (/^(SET|ADM|BR|XX|PIA)/.test(`${values[i][0]}`)) {
               igrejaNome = values[i][0];
             } else if (/^\d\d\/\d{4}/.test(values[i][2])) {
               ref = values[i][2];

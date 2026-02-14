@@ -10,6 +10,8 @@
  * @property {number} UNIDADE_COD - Código da unidade
  * @property {number} MEMBROS - Membros
  * @property {Date} CREATED - Date
+ * @property { string } SUPERIOR - CODIGO ESTABELECIMENTO SUPERIOR
+ * @property { string } INDICE - Indice
  * @property {boolean} ACTIVE - Indica se a igreja está ativa
  */
 
@@ -29,6 +31,8 @@ export class Igreja {
     CATEGORIA = '',
     UNIDADE_COD = 0,
     MEMBROS = 0,
+    SUPERIOR = '',
+    INDICE,
     CREATED = new Date(),
     ACTIVE = true,
   } = {}) {
@@ -42,9 +46,11 @@ export class Igreja {
       CATEGORIA,
       UNIDADE_COD,
       MEMBROS,
+      ACTIVE,
+      SUPERIOR,
+      INDICE,
       CREATED,
       UPDATED: new Date(),
-      ACTIVE,
     });
   }
 

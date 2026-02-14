@@ -1,18 +1,24 @@
 services:
   siga:
-    image: siga:latest
+    image: siga
     container_name: siga
     build:
       context: .
       dockerfile: Dockerfile
+    user: node
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
     ports:
       - '3009:3009'
-    environment:
-      NODE_ENV: production
     restart: always
     networks:
       - dockers
+    volumes:
+      - .:/app
+    command: npm start
 
 networks:
   dockers:
     external: true
+    name: dockers
