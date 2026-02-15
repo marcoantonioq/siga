@@ -1,437 +1,342 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SIGA Extractor Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-  </head>
-  <body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20">
-    <div id="app" class="max-w-3xl mx-auto px-4 py-8">
-      <div
-        v-if="loading"
-        class="fixed top-0 left-0 w-full h-1 z-50 bg-slate-200"
-      >
-        <div
-          class="bg-blue-600 h-full transition-all duration-300"
-          :style="{ width: progressPercent + '%' }"
-        ></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <style>
+    [v-cloak] { display: none; }
+    html, body { height: 100vh; overflow: hidden; background-color: #f1f5f9; }
+    
+    /* Scroll customizado e funcional */
+    .custom-scroll { overflow-y: auto; scrollbar-gutter: stable; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Tabelas de alto contraste */
+    .spreadsheet-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+    .spreadsheet-table th { 
+      @apply sticky top-0 z-10 border-b-2 border-slate-300 bg-slate-100 px-3 py-2 text-left text-[10px] font-black text-slate-700 uppercase;
+    }
+    .spreadsheet-table td { @apply border-b border-r border-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-800 whitespace-nowrap bg-white; }
+  </style>
+</head>
+<body class="text-slate-900 antialiased font-sans">
+
+<div id="app" v-cloak class="h-screen flex flex-col p-4 gap-4">
+  
+  <div v-show="loading" class="fixed top-0 left-0 w-full h-1 z-[100] bg-slate-200">
+    <div class="bg-blue-600 h-full transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
+  </div>
+
+  <header class="flex-none flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+    <div class="flex items-center gap-3">
+      <div class="bg-slate-900 w-10 h-10 rounded-xl flex items-center justify-center">
+        <i class="bi bi-layers-fill text-white text-xl"></i>
+      </div>
+      <h1 class="text-lg font-black tracking-tighter uppercase">Siga <span class="text-blue-600">Dados</span></h1>
+    </div>
+    <div :class="form.auth.token ? 'text-green-600 bg-green-50' : 'text-slate-400 bg-slate-50'" 
+         class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-current">
+      <i :class="form.auth.token ? 'bi bi-shield-check' : 'bi bi-shield-lock'"></i>
+      {{ form.auth.token ? 'Sessão Ativa' : 'Desconectado' }}
+    </div>
+  </header>
+
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+    
+    <aside class="lg:col-span-4 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="flex-1 custom-scroll p-5">
+        
+        <section class="mb-8">
+          <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2 mb-4">
+            <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px]">1</span>
+            Configuração
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="text-[10px] font-black text-slate-400 uppercase">Cookie da Sessão</label>
+              <div class="flex gap-2 mt-1">
+                <input type="password" v-model="form.auth.cookies" placeholder="siga_session=..." 
+                       class="flex-1 border-2 border-slate-100 rounded-xl p-3 text-xs focus:border-blue-500 outline-none">
+                <button @click="login" :disabled="loading" class="bg-slate-900 text-white px-5 rounded-xl font-black text-[10px] hover:bg-black transition-all">OK</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col">
+                <label class="text-[10px] font-black text-slate-400 uppercase">Início</label>
+                <input type="date" v-model="form.date1" class="border-2 border-slate-100 rounded-xl p-2 text-xs outline-none">
+              </div>
+              <div class="flex flex-col">
+                <label class="text-[10px] font-black text-slate-400 uppercase">Fim</label>
+                <input type="date" v-model="form.date2" class="border-2 border-slate-100 rounded-xl p-2 text-xs outline-none">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="mb-8 border-slate-100">
+
+        <section>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+              <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px]">2</span>
+              Unidades ({{ selectedCount }})
+            </h2>
+            <button @click="toggleSelectAll" class="text-[9px] font-black text-slate-400 hover:text-blue-600 uppercase underline">Inverter Tudo</button>
+          </div>
+          
+          <div class="space-y-2">
+            <div v-for="adm in adms" :key="adm.id" 
+                 @click="adm.selected = !adm.selected"
+                 :class="adm.selected ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-slate-50'"
+                 class="p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 group">
+              <input type="checkbox" :checked="adm.selected" class="w-4 h-4 rounded text-blue-600">
+              <div class="flex-1 overflow-hidden">
+                <p class="text-[11px] font-black text-slate-700 truncate capitalize">{{ adm.name.toLowerCase() }}</p>
+                <p class="text-[9px] text-slate-400 font-bold uppercase">{{ adm.churches.length }} igrejas</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="lg:col-span-8 flex flex-col bg-slate-200/50 rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="flex-none p-4 bg-white border-b flex justify-between items-center">
+        <h2 class="text-[11px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+          <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px]">3</span>
+          Painel de Coleta
+        </h2>
+        <div class="flex gap-4">
+          <button v-show="hasData" @click="expandAll(true)" class="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase">Expandir Tudo</button>
+          <button v-show="hasData" @click="expandAll(false)" class="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase">Recolher Tudo</button>
+        </div>
       </div>
 
-      <header class="mb-8 flex justify-between items-end">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
-            SIGA Extractor
-          </h1>
-          <p class="text-slate-500 text-sm">
-            Agrupamento automático por Unidade Administrativa
-          </p>
-        </div>
-        <div
-          :class="form.auth.token ? 'text-green-600' : 'text-slate-400'"
-          class="flex items-center gap-2 text-xs font-semibold uppercase"
-        >
-          <span class="relative flex h-2 w-2">
-            <span
-              v-if="loading"
-              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"
-            ></span>
-            <span
-              class="relative inline-flex rounded-full h-2 w-2"
-              :class="form.auth.token ? 'bg-green-500' : 'bg-slate-300'"
-            ></span>
-          </span>
-          {{ form.auth.token ? 'Sessão Ativa' : 'Offline' }}
-        </div>
-      </header>
-
-      <div
-        class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 space-y-6"
-      >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-500 uppercase"
-              >Data Início</label
-            >
-            <input
-              type="date"
-              v-model="form.date1"
-              class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition"
-            />
-          </div>
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-500 uppercase"
-              >Data Fim</label
-            >
-            <input
-              type="date"
-              v-model="form.date2"
-              class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition"
-            />
-          </div>
+      <div class="flex-1 custom-scroll p-4 space-y-3">
+        <div v-if="!hasData" class="h-full flex flex-col items-center justify-center opacity-20">
+          <i class="bi bi-database-down text-5xl mb-2"></i>
+          <p class="text-[10px] font-black uppercase tracking-widest">Nenhum dado capturado</p>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-slate-500 uppercase"
-            >Cookies de Sessão</label
-          >
-          <div class="flex gap-2">
-            <input
-              type="password"
-              v-model="form.auth.cookies"
-              placeholder="Cole os cookies aqui..."
-              class="flex-1 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-            <button
-              @click="login"
-              :disabled="loading"
-              class="bg-slate-900 text-white px-6 rounded-lg font-semibold hover:bg-slate-800 disabled:opacity-50 transition"
-            >
-              Conectar
+        <div v-for="adm in admsWithData" :key="adm.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div @click="adm.expanded = !adm.expanded" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-50 transition-all">
+            <div class="flex items-center gap-3">
+              <i :class="adm.expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" class="text-slate-400"></i>
+              <div>
+                <p class="text-[11px] font-black text-slate-900 uppercase leading-none">{{ adm.name }}</p>
+                <p class="text-[9px] font-bold text-blue-600 uppercase mt-1">{{ getTotalRows(adm) }} registros encontrados</p>
+              </div>
+            </div>
+            <button @click.stop="copyAllFromAdm(adm)" class="bg-slate-100 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-[9px] font-black transition-colors flex items-center gap-2">
+              <i class="bi bi-copy"></i> COPIAR EXCEL
             </button>
           </div>
-        </div>
-      </div>
 
-      <div v-if="adms.length" class="space-y-3 mb-6">
-        <div class="flex justify-between items-center px-1">
-          <h3 class="text-xs font-bold text-slate-500 uppercase">
-            Unidades Administrativas ({{ adms.length }})
-          </h3>
-          <button
-            @click="toggleSelectAll"
-            class="text-[10px] font-bold text-blue-600 uppercase hover:underline"
-          >
-            Alternar Seleção
-          </button>
-        </div>
-        <div
-          v-for="adm in adms"
-          :key="adm.id"
-          class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
-        >
-          <div
-            @click="adm.expanded = !adm.expanded"
-            class="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50 transition"
-          >
-            <input
-              type="checkbox"
-              v-model="adm.selected"
-              @click.stop
-              class="w-4 h-4 rounded border-slate-300 text-blue-600"
-            />
-            <div class="flex-1">
-              <span class="block font-semibold text-slate-700"
-                >{{ adm.name }}</span
-              >
-              <span class="text-xs text-slate-400 uppercase tracking-wider"
-                >Código: {{ adm.id }} • {{ adm.churches.length }} igrejas</span
-              >
-            </div>
-            <i
-              :data-lucide="adm.expanded ? 'chevron-up' : 'chevron-down'"
-              class="w-4 h-4 text-slate-400"
-            ></i>
-          </div>
-
-          <div
-            v-if="adm.expanded"
-            class="bg-slate-50 border-t border-slate-100 p-2 space-y-1"
-          >
-            <div
-              v-for="ig in adm.churches"
-              class="flex justify-between items-center py-2 px-4 text-sm hover:bg-white rounded-md transition"
-            >
-              <span class="text-slate-600">{{ ig.IGREJA_DESC }}</span>
-              <div class="flex gap-2 items-center">
-                <span class="text-[9px] text-slate-400"
-                  >ID {{ ig.IGREJA_COD }}</span
-                >
-                <span
-                  class="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded uppercase text-slate-500"
-                  >T{{ ig.IGREJA_TIPO }}</span
-                >
+          <div v-show="adm.expanded" class="p-4 bg-slate-50/50 border-t border-slate-100 space-y-6">
+            <div v-for="church in getChurchesWithData(adm)" :key="church.IGREJA_COD" class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <div class="p-2 px-4 bg-slate-100/50 border-b border-slate-100">
+                <span class="text-[10px] font-black text-slate-600 uppercase">{{ church.IGREJA_DESC }}</span>
+              </div>
+              <div class="p-0 overflow-x-auto">
+                <div v-for="opt in form.options.filter(o => o.active)" :key="opt.id">
+                  <div v-if="getChurchData(church.IGREJA_COD, opt.id).length">
+                    <div class="px-4 py-1 text-[8px] font-black text-blue-500 uppercase tracking-widest bg-blue-50/30">{{ opt.label }}</div>
+                    <table class="spreadsheet-table">
+                      <thead>
+                        <tr><th v-for="key in Object.keys(getChurchData(church.IGREJA_COD, opt.id)[0])" :key="key">{{ key }}</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(row, idx) in getChurchData(church.IGREJA_COD, opt.id)" :key="idx">
+                          <td v-for="val in Object.values(row)">{{ val }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </section>
+  </main>
 
-      <div
-        v-if="form.auth.token"
-        class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky bottom-4 z-10"
-      >
-        <div class="space-y-4">
-          <div class="flex flex-wrap gap-4 border-b border-slate-100 pb-4">
-            <label
-              v-for="opt in form.options"
-              :key="opt.id"
-              class="flex items-center gap-2 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                v-model="opt.active"
-                class="w-4 h-4 rounded text-blue-600"
-              />
-              <span class="text-sm font-medium text-slate-700"
-                >{{ opt.label }}</span
-              >
-              <button
-                v-if="tables[opt.id].length"
-                @click.stop="copy(opt.id)"
-                class="ml-1 text-[10px] bg-blue-600 text-white px-2 py-1 rounded-md"
-              >
-                Copiar {{ tables[opt.id].length }}
-              </button>
-            </label>
-          </div>
-
-          <button
-            @click="runExtraction"
-            :disabled="loading || !selectedCount"
-            class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 transition-all flex justify-center items-center gap-3"
-          >
-            <span
-              v-if="loading"
-              class="animate-spin border-2 border-white/30 border-t-white rounded-full h-5 w-5"
-            ></span>
-            {{ loading ? `Processando ${currentProgress} / ${totalToProcess}
-            igrejas` : 'Iniciar Captura de Dados' }}
-          </button>
-        </div>
-      </div>
+  <footer class="flex-none bg-slate-900 p-5 rounded-2xl flex flex-wrap items-center justify-between gap-6">
+    <div class="flex items-center gap-8 px-4">
+        <label v-for="opt in form.options" :key="opt.id" class="flex items-center gap-2 cursor-pointer group">
+          <input type="checkbox" v-model="opt.active" class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-500">
+          <span class="text-[10px] font-black text-slate-400 group-hover:text-white transition uppercase tracking-widest">{{ opt.label }}</span>
+        </label>
     </div>
 
-    <script>
-      const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
-      const API_URL = 'https://node.goias.ifg.edu.br';
+    <div class="flex items-center gap-4">
+      <button @click="clearData" class="p-3 text-slate-500 hover:text-red-400 transition-colors" title="Limpar Tudo">
+        <i class="bi bi-trash3 text-lg"></i>
+      </button>
+      <button @click="runExtraction" :disabled="loading || !selectedCount || !form.auth.token" 
+              class="bg-blue-600 hover:bg-blue-500 text-white px-12 py-4 rounded-xl font-black text-xs tracking-widest transition-all disabled:opacity-20 active:scale-95 flex items-center gap-3">
+        <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white animate-spin rounded-full"></span>
+        <i v-else class="bi bi-play-circle-fill"></i>
+        {{ loading ? 'EXTRAINDO...' : 'INICIAR CAPTURA' }}
+      </button>
+    </div>
+  </footer>
+</div>
 
-      createApp({
-        setup() {
-          const loading = ref(false);
-          const adms = ref([]);
-          const currentProgress = ref(0);
-          const totalToProcess = ref(0);
-          const tables = ref({
-            fluxos: [],
-            ofertas: [],
-            eventos: [],
-            dados: [],
+<script>
+  const { createApp, ref, computed, watch, onMounted } = Vue;
+  const API_URL = 'https://node.goias.ifg.edu.br';
+
+  createApp({
+    setup() {
+      const loading = ref(false);
+      const adms = ref([]);
+      const currentProgress = ref(0);
+      const totalToProcess = ref(0);
+      const storage = ref({});
+
+      const form = ref({
+        auth: { cookies: '', token: '' },
+        date1: new Date().toISOString().split('T')[0],
+        date2: new Date().toISOString().split('T')[0],
+        options: [
+          { id: 'fluxos', label: 'Fluxo de Caixa', active: true },
+          { id: 'eventos', label: 'Eventos', active: false }
+        ]
+      });
+
+      const api = async (end, data) => {
+        try {
+          const res = await fetch(`${API_URL}/${end}`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(data) 
           });
+          return await res.json();
+        } catch (e) { return null; }
+      };
 
-          const form = ref({
-            auth: { cookies: '', token: '' },
-            date1: new Date().toISOString().split('T')[0],
-            date2: new Date().toISOString().split('T')[0],
-            options: [
-              { id: 'fluxos', label: 'Fluxo', type: 3, active: true },
-              // { id: 'ofertas', label: 'Ofertas', type: 3, active: true },
-              { id: 'eventos', label: 'Eventos', type: 3, active: false },
-            ],
-          });
+      const login = async () => {
+        if (!form.value.auth.cookies) return;
+        loading.value = true;
+        try {
+          const res = await api('siga-login', { Cookie: form.value.auth.cookies });
+          const user = res && (typeof res.data === 'string' ? JSON.parse(res.data) : res.data);
+          if (user && (user.token || user.id)) {
+            form.value.auth.token = user.token || user.id;
+            await loadStructure();
+            Toastify({ text: "Conectado!", background: "#2563eb" }).showToast();
+          } else {
+            Toastify({ text: "Cookies expirados", background: "#ef4444" }).showToast();
+          }
+        } catch(e) {}
+        loading.value = false;
+      };
 
-          const refreshIcons = () => nextTick(() => lucide.createIcons());
-
-          const api = async (end, data) => {
-            const res = await fetch(`${API_URL}/${end}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data),
+      const loadStructure = async () => {
+        const res = await api('siga-igrejas', { Cookie: form.value.auth.cookies });
+        const churches = Array.isArray(res) ? res : (res.payload || []);
+        const map = new Map();
+        churches.forEach(ig => {
+          if (!map.has(ig.UNIDADE_COD)) {
+            map.set(ig.UNIDADE_COD, { 
+              id: ig.UNIDADE_COD, name: ig.IGREJA_ADM || 'S/N', 
+              selected: false, expanded: false, churches: [] 
             });
-            return res.json();
-          };
+          }
+          map.get(ig.UNIDADE_COD).churches.push(ig);
+        });
+        adms.value = Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
+      };
 
-          const login = async () => {
-            if (!form.value.auth.cookies) return;
-            loading.value = true;
-            try {
-              // 1. Login para validar cookies e obter token inicial
-              const res = await api('siga-login', {
-                Cookie: form.value.auth.cookies,
-              });
-              const user =
-                typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+      const runExtraction = async () => {
+        loading.value = true;
+        currentProgress.value = 0;
+        const targetIgs = adms.value.filter(a => a.selected).flatMap(a => a.churches);
+        totalToProcess.value = targetIgs.length;
 
-              if (user && (user.token || user.id)) {
-                form.value.auth.token = user.token || user.id;
-                Object.assign(form.value.auth, user);
-
-                // 2. Carrega igrejas e gera as ADMs automaticamente
-                await loadStructure();
-
-                Toastify({
-                  text: 'Conectado e ADMs carregadas!',
-                  background: '#27ae60',
-                }).showToast();
-              }
-            } catch (e) {
-              Toastify({
-                text: 'Erro na autenticação',
-                background: '#e74c3c',
-              }).showToast();
-            } finally {
-              loading.value = false;
+        for (const ig of targetIgs) {
+          currentProgress.value++;
+          if (ig.IGREJA_TIPO !== 3) continue;
+          try {
+            await api('siga-alterar-igreja', { Cookie: form.value.auth.cookies, igreja: ig });
+            if (!storage.value[ig.IGREJA_COD]) storage.value[ig.IGREJA_COD] = { fluxos: [], ofertas: [], eventos: [] };
+            
+            for (const t of form.value.options.filter(o => o.active)) {
+              const res = await api(`siga-${t.id}`, { Cookie: form.value.auth.cookies, igreja: ig, data1: form.value.date1, data2: form.value.date2 });
+              const cleanData = res && (typeof res.data === 'string' ? JSON.parse(res.data) : (res.data || res.payload || res));
+              if (Array.isArray(cleanData)) storage.value[ig.IGREJA_COD][t.id] = cleanData;
             }
-          };
+          } catch (e) { console.error(e); }
+        }
+        loading.value = false;
+        Toastify({ text: "Extração Concluída!", background: "#16a34a" }).showToast();
+      };
 
-          const loadStructure = async () => {
-            // Busca a lista de igrejas (usando o formato Cookie: cookies)
-            const res = await api('siga-igrejas', {
-              Cookie: form.value.auth.cookies,
-            });
+      const getChurchData = (cod, type) => (storage.value[cod] && storage.value[cod][type]) || [];
+      const getChurchesWithData = (adm) => adm.churches.filter(ig => form.value.options.some(opt => getChurchData(ig.IGREJA_COD, opt.id).length > 0));
+      const admsWithData = computed(() => adms.value.filter(adm => getChurchesWithData(adm).length > 0));
+      const selectedCount = computed(() => adms.value.filter(a => a.selected).length);
+      const progressPercent = computed(() => totalToProcess.value ? (currentProgress.value / totalToProcess.value) * 100 : 0);
+      const hasData = computed(() => Object.keys(storage.value).length > 0);
 
-            // Conforme sua estrutura: payload é o array de igrejas
-            const churches = res || [];
+      const getTotalRows = (adm) => {
+        let count = 0;
+        getChurchesWithData(adm).forEach(ig => {
+          form.value.options.forEach(opt => count += getChurchData(ig.IGREJA_COD, opt.id).length);
+        });
+        return count;
+      };
 
-            // Agrupamento por UNIDADE_COD para gerar ADMs únicas
-            const map = new Map();
-            churches.forEach((ig) => {
-              const cod = ig.UNIDADE_COD;
-              if (!map.has(cod)) {
-                map.set(cod, {
-                  id: cod,
-                  name: ig.IGREJA_ADM || 'Unidade Sem Nome',
-                  selected: false,
-                  expanded: false,
-                  churches: [],
-                });
-              }
-              map.get(cod).churches.push(ig);
-            });
+      const expandAll = (state) => adms.value.forEach(a => { if(getChurchesWithData(a).length) a.expanded = state; });
+      const toggleSelectAll = () => {
+        const any = adms.value.some(a => a.selected);
+        adms.value.forEach(a => a.selected = !any);
+      };
 
-            adms.value = Array.from(map.values()).sort((a, b) =>
-              a.name.localeCompare(b.name)
-            );
-            refreshIcons();
-          };
-
-          const runExtraction = async () => {
-            loading.value = true;
-            currentProgress.value = 0;
-            const targetIgs = adms.value
-              .filter((a) => a.selected)
-              .flatMap((a) => a.churches);
-            totalToProcess.value = targetIgs.length;
-
-            // Reset das tabelas
-            form.value.options.forEach((o) => (tables.value[o.id] = []));
-
-            for (const ig of targetIgs) {
-              currentProgress.value++;
-              try {
-                if (ig.IGREJA_TIPO === 3) {
-                  console.log(
-                    `Acessando ${ig.IGREJA_DESC} (tipo ${ig.IGREJA_TIPO})`,
-                    ig
-                  );
-                  await api('siga-alterar-igreja', {
-                    Cookie: form.value.auth.Cookie,
-                    igreja: ig,
-                  });
-
-                  const tasks = form.value.options.filter(
-                    (o) => o.active && o.type === ig.IGREJA_TIPO
-                  );
-                  await Promise.all(
-                    tasks.map(async (t) => {
-                      const res = await api(`siga-${t.id}`, {
-                        Cookie: form.value.auth.Cookie,
-                        igreja: ig,
-                        data1: form.value.date1,
-                        data2: form.value.date2,
-                      });
-                      const data =
-                        typeof res.data === 'string'
-                          ? JSON.parse(res.data)
-                          : res.data;
-                      if (Array.isArray(data)) tables.value[t.id].push(...data);
-                    })
-                  );
-                }
-              } catch (e) {
-                console.error('Erro na igreja ' + ig.IGREJA_DESC, e);
-              }
-            }
-            loading.value = false;
-            Toastify({
-              text: 'Extração concluída!',
-              background: '#16a34a',
-            }).showToast();
-          };
-
-          const copy = (id) => {
-            const data = tables.value[id];
-            if (!data.length) return;
-            const content = [
-              Object.keys(data[0]).join('\t'),
-              ...data.map((obj) => Object.values(obj).join('\t')),
-            ].join('\n');
-            navigator.clipboard.writeText(content);
-            Toastify({ text: 'Copiado com sucesso!' }).showToast();
-          };
-
-          const toggleSelectAll = () => {
-            const anySelected = adms.value.some((a) => a.selected);
-            adms.value.forEach((a) => (a.selected = !anySelected));
-          };
-
-          const selectedCount = computed(
-            () => adms.value.filter((a) => a.selected).length
-          );
-          const progressPercent = computed(() =>
-            totalToProcess.value
-              ? (currentProgress.value / totalToProcess.value) * 100
-              : 0
-          );
-
-          watch(() => adms.value, refreshIcons, { deep: true });
-
-          onMounted(() => {
-            lucide.createIcons();
-            const saved = localStorage.getItem('siga_v3');
-            if (saved) {
-              const p = JSON.parse(saved);
-              form.value.date1 = p.d1;
-              form.value.date2 = p.d2;
-              form.value.auth.cookies = p.ck;
-              if (form.value.auth.cookies) login();
+      const copyAllFromAdm = (adm) => {
+        let allRows = [];
+        let headers = "";
+        getChurchesWithData(adm).forEach(ig => {
+          form.value.options.filter(o => o.active).forEach(opt => {
+            const data = getChurchData(ig.IGREJA_COD, opt.id);
+            if (data.length) {
+              if (!headers) headers = Object.keys(data[0]).join('\t');
+              data.forEach(row => allRows.push(Object.values(row).map(v => v === null ? '' : v).join('\t')));
             }
           });
+        });
+        navigator.clipboard.writeText(headers + '\n' + allRows.join('\n'));
+        Toastify({ text: "Dados Copiados!", background: "#000" }).showToast();
+      };
 
-          watch(
-            form,
-            (v) => {
-              localStorage.setItem(
-                'siga_v3',
-                JSON.stringify({ d1: v.date1, d2: v.date2, ck: v.auth.cookies })
-              );
-            },
-            { deep: true }
-          );
+      const clearData = () => { storage.value = {}; currentProgress.value = 0; totalToProcess.value = 0; };
 
-          return {
-            form,
-            loading,
-            adms,
-            tables,
-            currentProgress,
-            totalToProcess,
-            selectedCount,
-            progressPercent,
-            login,
-            runExtraction,
-            copy,
-            toggleSelectAll,
-          };
-        },
-      }).mount('#app');
-    </script>
-  </body>
+      onMounted(() => {
+        const saved = localStorage.getItem('siga_v9_stable');
+        if (saved) {
+          const p = JSON.parse(saved);
+          form.value.date1 = p.d1; form.value.date2 = p.d2; form.value.auth.cookies = p.ck;
+          if (form.value.auth.cookies) login();
+        }
+      });
+
+      watch(form, (v) => {
+        localStorage.setItem('siga_v9_stable', JSON.stringify({d1: v.date1, d2: v.date2, ck: v.auth.cookies}));
+      }, {deep: true});
+
+      return { form, loading, adms, storage, currentProgress, totalToProcess, selectedCount, progressPercent, hasData, admsWithData, login, runExtraction, clearData, toggleSelectAll, getChurchData, getChurchesWithData, copyAllFromAdm, expandAll, getTotalRows };
+    }
+  }).mount('#app');
+</script>
+
+</body>
 </html>
