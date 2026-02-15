@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGA Extractor Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  </head>
+  <body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20">
+    <div id="app" class="max-w-3xl mx-auto px-4 py-8">
+      <div
+        v-if="loading"
+        class="fixed top-0 left-0 w-full h-1 z-50 bg-slate-200"
+      >
+        <div
+          class="bg-blue-600 h-full transition-all duration-300"
+          :style="{ width: progressPercent + '%' }"
+        ></div>
+      </div>
+
+      <header class="mb-8 flex justify-between items-end">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
+            SIGA Extractor
+          </h1>
+          <p class="text-slate-500 text-sm">
+            Agrupamento automático por Unidade Administrativa
+          </p>
+        </div>
+        <div
+          :class="form.auth.token ? 'text-green-600' : 'text-slate-400'"
+          class="flex items-center gap-2 text-xs font-semibold uppercase"
+        >
+          <span class="relative flex h-2 w-2">
+            <span
+              v-if="loading"
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"
+            ></span>
+            <span
+              class="relative inline-flex rounded-full h-2 w-2"
+              :class="form.auth.token ? 'bg-green-500' : 'bg-slate-300'"
+            ></span>
+          </span>
+          {{ form.auth.token ? 'Sessão Ativa' : 'Offline' }}
+        </div>
+      </header>
+
+      <div
+        class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 space-y-6"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-500 uppercase"
+              >Data Início</label
+            >
+            <input
+              type="date"
+              v-model="form.date1"
+              class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition"
+            />
+          </div>
+          <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-500 uppercase"
+              >Data Fim</label
+            >
+            <input
+              type="date"
+              v-model="form.date2"
+              class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Cookies de Sessão</label
+          >
+          <div class="flex gap-2">
+            <input
+              type="password"
+              v-model="form.auth.cookies"
+              placeholder="Cole os cookies aqui..."
+              class="flex-1 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            <button
+              @click="login"
+              :disabled="loading"
+              class="bg-slate-900 text-white px-6 rounded-lg font-semibold hover:bg-slate-800 disabled:opacity-50 transition"
+            >
+              Conectar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="adms.length" class="space-y-3 mb-6">
+        <div class="flex justify-between items-center px-1">
+          <h3 class="text-xs font-bold text-slate-500 uppercase">
+            Unidades Administrativas ({{ adms.length }})
+          </h3>
+          <button
+            @click="toggleSelectAll"
+            class="text-[10px] font-bold text-blue-600 uppercase hover:underline"
+          >
+            Alternar Seleção
+          </button>
+        </div>
+        <div
+          v-for="adm in adms"
+          :key="adm.id"
+          class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+        >
+          <div
+            @click="adm.expanded = !adm.expanded"
+            class="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50 transition"
+          >
+            <input
+              type="checkbox"
+              v-model="adm.selected"
+              @click.stop
+              class="w-4 h-4 rounded border-slate-300 text-blue-600"
+            />
+            <div class="flex-1">
+              <span class="block font-semibold text-slate-700"
+                >{{ adm.name }}</span
+              >
+              <span class="text-xs text-slate-400 uppercase tracking-wider"
+                >Código: {{ adm.id }} • {{ adm.churches.length }} igrejas</span
+              >
+            </div>
+            <i
+              :data-lucide="adm.expanded ? 'chevron-up' : 'chevron-down'"
+              class="w-4 h-4 text-slate-400"
+            ></i>
+          </div>
+
+          <div
+            v-if="adm.expanded"
+            class="bg-slate-50 border-t border-slate-100 p-2 space-y-1"
+          >
+            <div
+              v-for="ig in adm.churches"
+              class="flex justify-between items-center py-2 px-4 text-sm hover:bg-white rounded-md transition"
+            >
+              <span class="text-slate-600">{{ ig.IGREJA_DESC }}</span>
+              <div class="flex gap-2 items-center">
+                <span class="text-[9px] text-slate-400"
+                  >ID {{ ig.IGREJA_COD }}</span
+                >
+                <span
+                  class="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded uppercase text-slate-500"
+                  >T{{ ig.IGREJA_TIPO }}</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="form.auth.token"
+        class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky bottom-4 z-10"
+      >
+        <div class="space-y-4">
+          <div class="flex flex-wrap gap-4 border-b border-slate-100 pb-4">
+            <label
+              v-for="opt in form.options"
+              :key="opt.id"
+              class="flex items-center gap-2 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                v-model="opt.active"
+                class="w-4 h-4 rounded text-blue-600"
+              />
+              <span class="text-sm font-medium text-slate-700"
+                >{{ opt.label }}</span
+              >
+              <button
+                v-if="tables[opt.id].length"
+                @click.stop="copy(opt.id)"
+                class="ml-1 text-[10px] bg-blue-600 text-white px-2 py-1 rounded-md"
+              >
+                Copiar {{ tables[opt.id].length }}
+              </button>
+            </label>
+          </div>
+
+          <button
+            @click="runExtraction"
+            :disabled="loading || !selectedCount"
+            class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 transition-all flex justify-center items-center gap-3"
+          >
+            <span
+              v-if="loading"
+              class="animate-spin border-2 border-white/30 border-t-white rounded-full h-5 w-5"
+            ></span>
+            {{ loading ? `Processando ${currentProgress} / ${totalToProcess}
+            igrejas` : 'Iniciar Captura de Dados' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+      const API_URL = 'https://node.goias.ifg.edu.br';
+
+      createApp({
+        setup() {
+          const loading = ref(false);
+          const adms = ref([]);
+          const currentProgress = ref(0);
+          const totalToProcess = ref(0);
+          const tables = ref({
+            fluxos: [],
+            ofertas: [],
+            eventos: [],
+            dados: [],
+          });
+
+          const form = ref({
+            auth: { cookies: '', token: '' },
+            date1: new Date().toISOString().split('T')[0],
+            date2: new Date().toISOString().split('T')[0],
+            options: [
+              { id: 'fluxos', label: 'Fluxo', type: 3, active: true },
+              // { id: 'ofertas', label: 'Ofertas', type: 3, active: true },
+              { id: 'eventos', label: 'Eventos', type: 3, active: false },
+            ],
+          });
+
+          const refreshIcons = () => nextTick(() => lucide.createIcons());
+
+          const api = async (end, data) => {
+            const res = await fetch(`${API_URL}/${end}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+            });
+            return res.json();
+          };
+
+          const login = async () => {
+            if (!form.value.auth.cookies) return;
+            loading.value = true;
+            try {
+              // 1. Login para validar cookies e obter token inicial
+              const res = await api('siga-login', {
+                Cookie: form.value.auth.cookies,
+              });
+              const user =
+                typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+
+              if (user && (user.token || user.id)) {
+                form.value.auth.token = user.token || user.id;
+                Object.assign(form.value.auth, user);
+
+                // 2. Carrega igrejas e gera as ADMs automaticamente
+                await loadStructure();
+
+                Toastify({
+                  text: 'Conectado e ADMs carregadas!',
+                  background: '#27ae60',
+                }).showToast();
+              }
+            } catch (e) {
+              Toastify({
+                text: 'Erro na autenticação',
+                background: '#e74c3c',
+              }).showToast();
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          const loadStructure = async () => {
+            // Busca a lista de igrejas (usando o formato Cookie: cookies)
+            const res = await api('siga-igrejas', {
+              Cookie: form.value.auth.cookies,
+            });
+
+            // Conforme sua estrutura: payload é o array de igrejas
+            const churches = res || [];
+
+            // Agrupamento por UNIDADE_COD para gerar ADMs únicas
+            const map = new Map();
+            churches.forEach((ig) => {
+              const cod = ig.UNIDADE_COD;
+              if (!map.has(cod)) {
+                map.set(cod, {
+                  id: cod,
+                  name: ig.IGREJA_ADM || 'Unidade Sem Nome',
+                  selected: false,
+                  expanded: false,
+                  churches: [],
+                });
+              }
+              map.get(cod).churches.push(ig);
+            });
+
+            adms.value = Array.from(map.values()).sort((a, b) =>
+              a.name.localeCompare(b.name)
+            );
+            refreshIcons();
+          };
+
+          const runExtraction = async () => {
+            loading.value = true;
+            currentProgress.value = 0;
+            const targetIgs = adms.value
+              .filter((a) => a.selected)
+              .flatMap((a) => a.churches);
+            totalToProcess.value = targetIgs.length;
+
+            // Reset das tabelas
+            form.value.options.forEach((o) => (tables.value[o.id] = []));
+
+            for (const ig of targetIgs) {
+              currentProgress.value++;
+              try {
+                if (ig.IGREJA_TIPO === 3) {
+                  console.log(
+                    `Acessando ${ig.IGREJA_DESC} (tipo ${ig.IGREJA_TIPO})`,
+                    ig
+                  );
+                  await api('siga-alterar-igreja', {
+                    Cookie: form.value.auth.Cookie,
+                    igreja: ig,
+                  });
+
+                  const tasks = form.value.options.filter(
+                    (o) => o.active && o.type === ig.IGREJA_TIPO
+                  );
+                  await Promise.all(
+                    tasks.map(async (t) => {
+                      const res = await api(`siga-${t.id}`, {
+                        Cookie: form.value.auth.Cookie,
+                        igreja: ig,
+                        data1: form.value.date1,
+                        data2: form.value.date2,
+                      });
+                      const data =
+                        typeof res.data === 'string'
+                          ? JSON.parse(res.data)
+                          : res.data;
+                      if (Array.isArray(data)) tables.value[t.id].push(...data);
+                    })
+                  );
+                }
+              } catch (e) {
+                console.error('Erro na igreja ' + ig.IGREJA_DESC, e);
+              }
+            }
+            loading.value = false;
+            Toastify({
+              text: 'Extração concluída!',
+              background: '#16a34a',
+            }).showToast();
+          };
+
+          const copy = (id) => {
+            const data = tables.value[id];
+            if (!data.length) return;
+            const content = [
+              Object.keys(data[0]).join('\t'),
+              ...data.map((obj) => Object.values(obj).join('\t')),
+            ].join('\n');
+            navigator.clipboard.writeText(content);
+            Toastify({ text: 'Copiado com sucesso!' }).showToast();
+          };
+
+          const toggleSelectAll = () => {
+            const anySelected = adms.value.some((a) => a.selected);
+            adms.value.forEach((a) => (a.selected = !anySelected));
+          };
+
+          const selectedCount = computed(
+            () => adms.value.filter((a) => a.selected).length
+          );
+          const progressPercent = computed(() =>
+            totalToProcess.value
+              ? (currentProgress.value / totalToProcess.value) * 100
+              : 0
+          );
+
+          watch(() => adms.value, refreshIcons, { deep: true });
+
+          onMounted(() => {
+            lucide.createIcons();
+            const saved = localStorage.getItem('siga_v3');
+            if (saved) {
+              const p = JSON.parse(saved);
+              form.value.date1 = p.d1;
+              form.value.date2 = p.d2;
+              form.value.auth.cookies = p.ck;
+              if (form.value.auth.cookies) login();
+            }
+          });
+
+          watch(
+            form,
+            (v) => {
+              localStorage.setItem(
+                'siga_v3',
+                JSON.stringify({ d1: v.date1, d2: v.date2, ck: v.auth.cookies })
+              );
+            },
+            { deep: true }
+          );
+
+          return {
+            form,
+            loading,
+            adms,
+            tables,
+            currentProgress,
+            totalToProcess,
+            selectedCount,
+            progressPercent,
+            login,
+            runExtraction,
+            copy,
+            toggleSelectAll,
+          };
+        },
+      }).mount('#app');
+    </script>
+  </body>
+</html>
